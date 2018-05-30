@@ -77,6 +77,7 @@
         <module>reader-gtfs</module>
         <module>reader-json</module>
         <module>tools</module>
+        <module>disabled-routing</module>
         <module>web</module>
         <module>client-hc</module>
     </modules>
