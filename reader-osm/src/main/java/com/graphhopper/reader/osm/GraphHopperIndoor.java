@@ -20,10 +20,17 @@ package com.graphhopper.reader.osm;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.reader.DataReader;
+import com.graphhopper.routing.util.EncodingManager;
+import com.graphhopper.routing.util.EncodingManagerIndoor;
 import com.graphhopper.storage.*;
 import com.graphhopper.util.CmdArgs;
+import com.graphhopper.util.Unzipper;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
+import static com.graphhopper.util.Helper.*;
+
 
 /**
  * Easy to use access point to configure import and (offline) routing.
@@ -37,7 +44,9 @@ public class GraphHopperIndoor extends GraphHopper {
 
     //for indoor navigation navigation
     private Set<String> allLevels = new HashSet<String>();
-    //private GraphHopperStorageIndoor ghStorage;
+    private GraphHopperStorageIndoor ghStorage;
+    private EncodingManagerIndoor encodingManager;
+    private boolean fullyLoaded = false;
 
 
     public GraphHopperIndoor() {
@@ -53,28 +62,43 @@ public class GraphHopperIndoor extends GraphHopper {
     @Override
     public GraphHopperIndoor init(CmdArgs args) {
         super.init(args);
-        //ghStorage = new GraphHopperStorageIndoor(super.getGraphHopperStorage().getDirectory(),
-        //super.getGraphHopperStorage().getEncodingManager(),false,
-        //super.getGraphHopperStorage().getExtension());
-
+        args = CmdArgs.readFromConfigAndMerge(args, "config", "graphhopper.config");
+        int bytesForFlags = args.getInt("graph.bytes_for_flags", 4);
+        String flagEncodersStr = args.get("graph.flag_encoders", "");
+        if (!flagEncodersStr.isEmpty())
+            this.setEncodingManager(new EncodingManagerIndoor(super.getFlagEncoderFactory(), flagEncodersStr, bytesForFlags));
         return this;
     }
 
-    @Override
-    public GraphHopperIndoor importOrLoad() {
-        super.importOrLoad();
-        return this;
-    }
 
     @Override
     public boolean load(String graphHopperFolder) {
-        return super.load(graphHopperFolder);
+        if(!super.load(graphHopperFolder))
+            return false;
+        this.ghStorage = toIndoor(super.getGraphHopperStorage(),this.encodingManager);
+        return true;
+    }
+
+    public GraphHopperIndoor setEncodingManager(EncodingManagerIndoor em) {
+        ensureNotLoaded();
+        this.encodingManager = em;
+        return this;
+    }
+
+    @Override
+    protected void ensureNotLoaded() {
+        if (fullyLoaded)
+            throw new IllegalStateException("No configuration changes are possible after loading the graph");
 
     }
 
-//    GraphHopperStorageIndoor getGhStorage(){
-//        return ghStorage;
-//    }
+    public static GraphHopperStorageIndoor toIndoor(GraphHopperStorage graphHopperStorage, EncodingManagerIndoor encodingManager){
+        return new GraphHopperStorageIndoor(graphHopperStorage.getDirectory(),encodingManager,graphHopperStorage.getExtension());
+    }
+
+
+
+
 }
 
 

@@ -1,14 +1,14 @@
 /*
  *  Licensed to GraphHopper GmbH under one or more contributor
- *  license agreements. See the NOTICE file distributed with this work for 
+ *  license agreements. See the NOTICE file distributed with this work for
  *  additional information regarding copyright ownership.
- * 
- *  GraphHopper GmbH licenses this file to you under the Apache License, 
- *  Version 2.0 (the "License"); you may not use this file except in 
+ *
+ *  GraphHopper GmbH licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except in
  *  compliance with the License. You may obtain a copy of the License at
- * 
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,59 +18,30 @@
 package com.graphhopper.reader.osm;
 
 import com.carrotsearch.hppc.*;
-import com.graphhopper.coll.*;
-import com.graphhopper.coll.LongIntMap;
 import com.graphhopper.reader.*;
-import com.graphhopper.reader.dem.ElevationProvider;
-import com.graphhopper.reader.dem.GraphElevationSmoothing;
-import com.graphhopper.routing.util.EncodingManager;
-import com.graphhopper.routing.util.FlagEncoder;
+import com.graphhopper.routing.util.EncodingManagerIndoor;
 import com.graphhopper.storage.*;
 import com.graphhopper.util.*;
-import com.graphhopper.util.shapes.GHPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.stream.XMLStreamException;
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 import static com.graphhopper.util.Helper.nf;
 
 /**
- * This class parses an OSM xml or pbf file and creates a graph from it. It does so in a two phase
- * parsing processes in order to reduce memory usage compared to a single parsing processing.
- * <p>
- * 1. a) Reads ways from OSM file and stores all associated node ids in {@link #osmNodeIdToInternalNodeMap}. If a
- * node occurs once it is a pillar node and if more it is a tower node, otherwise
- * {@link #osmNodeIdToInternalNodeMap} returns EMPTY.
- * <p>
- * 1. b) Reads relations from OSM file. In case that the relation is a route relation, it stores
- * specific relation attributes required for routing into {@link #osmWayIdToRouteWeightMap} for all the ways
- * of the relation.
- * <p>
- * 2.a) Reads nodes from OSM file and stores lat+lon information either into the intermediate
- * data structure for the pillar nodes (pillarLats/pillarLons) or, if a tower node, directly into the
- * graphStorage via setLatitude/setLongitude. It can also happen that a pillar node needs to be
- * transformed into a tower node e.g. via barriers or different speed values for one way.
- * <p>
- * 2.b) Reads ways from OSM file and creates edges while calculating the speed etc from the OSM tags.
- * When creating an edge the pillar node information from the intermediate data structure will be
- * stored in the way geometry of that edge.
- * <p>
+ * This class provides the functionality to process OSM data with indoor information
  *
- * @author Peter Karich
+ * @author Bettina Auschra
  */
-public class OSMReaderIndoor extends OSMReader{
+public class OSMReaderIndoor extends OSMReader {
+    private static final Logger LOGGER = LoggerFactory.getLogger(OSMReader.class);
     // levels in the building in the case of indoor navigation
     private Set<String> allLevels = new HashSet<String>();
-    private static final Logger LOGGER = LoggerFactory.getLogger(OSMReader.class);
     //private final Map<FlagEncoder, EdgeExplorer> inExplorerMap = new HashMap<FlagEncoder, EdgeExplorer>();
     private Date osmDataDate;
-
-
-
+    private EncodingManagerIndoor encodingManagerIndoor;
     private GraphHopperStorage ghStorage;
 
 
@@ -80,6 +51,9 @@ public class OSMReaderIndoor extends OSMReader{
         this.ghStorage = ghStorage;
         //this.ghStorage = new GraphHopperStorageIndoor(ghStorage.getDirectory(),ghStorage.getEncodingManager(),false,ghStorage.getExtension());
     }
+
+
+
 
 
     /**
@@ -111,16 +85,13 @@ public class OSMReaderIndoor extends OSMReader{
                         if (level != null) {
                             if (level.contains(";")) {
                                 String[] levels = level.split(";");
-                                for (String level2 : levels) {
-                                    if (!allLevels.contains(level)) {
-                                        allLevels.add(level2);
-                                    }
-                                }
-
+                                for (String level2 : levels)
+                                    allLevels.add(level2);
                             }
-                                allLevels.add(level);
 
                         }
+                        allLevels.add(level);
+
                     }
                 } else if (item.isType(ReaderElement.RELATION)) {
                     final ReaderRelation relation = (ReaderRelation) item;
@@ -137,8 +108,8 @@ public class OSMReaderIndoor extends OSMReader{
                 }
 
             }
-            if(allLevels.size()>0){
-                this.ghStorage.getProperties().put("levels",allLevels);
+            if (allLevels.size() > 0) {
+                this.ghStorage.getProperties().put("levels", allLevels);
 
             }
         } catch (Exception ex) {
@@ -156,8 +127,6 @@ public class OSMReaderIndoor extends OSMReader{
     void processWay(ReaderWay way) {
         super.processWay(way);
     }
-
-
 
 
 }
