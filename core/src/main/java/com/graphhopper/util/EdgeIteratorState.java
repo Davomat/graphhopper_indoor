@@ -118,6 +118,9 @@ public interface EdgeIteratorState {
 
     EdgeIteratorState setName(String name);
 
+    String getLevel();
+
+    EdgeIteratorState setLevel(String level);
     /**
      * Clones this EdgeIteratorState.
      * <p>

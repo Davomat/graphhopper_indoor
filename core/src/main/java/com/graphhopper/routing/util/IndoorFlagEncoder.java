@@ -34,10 +34,6 @@ public class IndoorFlagEncoder extends AbstractFlagEncoder {
     final Set<String> safeHighwayTags = new HashSet<String>();
     final Set<String> allowedHighwayTags = new HashSet<String>();
     final Set<String> avoidHighwayTags = new HashSet<String>();
-    //final LevelIndex levelIndex = new LevelIndex("test");
-
-    //levels in the building
-    final Set<String> allLevels = new HashSet<String>();
 
     // convert network tag of hiking routes into a way route code
     private EncodedValue priorityWayEncoder;
@@ -79,6 +75,8 @@ public class IndoorFlagEncoder extends AbstractFlagEncoder {
         potentialBarriers.add("stairs");
 
         safeHighwayTags.add("footway");
+        safeHighwayTags.add("stairs");
+        safeHighwayTags.add("elevator");
 
 
         //
@@ -244,6 +242,8 @@ public class IndoorFlagEncoder extends AbstractFlagEncoder {
 
     @Override
     public void applyWayTags(ReaderWay way, EdgeIteratorState edge) {
+        String level = way.getTag("level","");
+        edge.setLevel(level);
 
     }
 }

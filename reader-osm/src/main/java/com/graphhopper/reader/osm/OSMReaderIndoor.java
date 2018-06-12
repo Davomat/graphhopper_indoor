@@ -19,7 +19,6 @@ package com.graphhopper.reader.osm;
 
 import com.carrotsearch.hppc.*;
 import com.graphhopper.reader.*;
-import com.graphhopper.routing.util.EncodingManagerIndoor;
 import com.graphhopper.storage.*;
 import com.graphhopper.util.*;
 import org.slf4j.Logger;
@@ -41,7 +40,6 @@ public class OSMReaderIndoor extends OSMReader {
     private Set<String> allLevels = new HashSet<String>();
     //private final Map<FlagEncoder, EdgeExplorer> inExplorerMap = new HashMap<FlagEncoder, EdgeExplorer>();
     private Date osmDataDate;
-    private EncodingManagerIndoor encodingManagerIndoor;
     private GraphHopperStorage ghStorage;
 
 
@@ -49,7 +47,6 @@ public class OSMReaderIndoor extends OSMReader {
     public OSMReaderIndoor(GraphHopperStorage ghStorage) {
         super(ghStorage);
         this.ghStorage = ghStorage;
-        //this.ghStorage = new GraphHopperStorageIndoor(ghStorage.getDirectory(),ghStorage.getEncodingManager(),false,ghStorage.getExtension());
     }
 
 

@@ -120,6 +120,16 @@ class VirtualEdgeIterator implements EdgeIterator, CHEdgeIteratorState {
     }
 
     @Override
+    public String getLevel() {
+        return edges.get(current).getLevel();
+    }
+
+    @Override
+    public EdgeIteratorState setLevel(String level) {
+        return edges.get(current).setLevel(level);
+    }
+
+    @Override
     public boolean getBool(int key, boolean _default) {
         return edges.get(current).getBool(key, _default);
     }
