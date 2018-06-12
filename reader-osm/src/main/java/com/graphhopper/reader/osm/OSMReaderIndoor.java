@@ -85,9 +85,11 @@ public class OSMReaderIndoor extends OSMReader {
                                 for (String level2 : levels)
                                     allLevels.add(level2);
                             }
+                            else
+                                allLevels.add(level);
 
                         }
-                        allLevels.add(level);
+
 
                     }
                 } else if (item.isType(ReaderElement.RELATION)) {
