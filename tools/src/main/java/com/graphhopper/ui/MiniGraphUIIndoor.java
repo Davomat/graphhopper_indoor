@@ -33,6 +33,7 @@ import com.graphhopper.util.*;
 import com.graphhopper.util.Parameters.Algorithms;
 import com.graphhopper.util.shapes.BBox;
 
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +43,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
@@ -79,6 +81,8 @@ public class MiniGraphUIIndoor {
     private boolean fastPaint = false;
     private QueryResult fromRes;
     private QueryResult toRes;
+    private Set<String> allLevels = new HashSet<String>();
+
 
 
 
@@ -193,6 +197,7 @@ public class MiniGraphUIIndoor {
                 levelPanel = new JPanel(new GridLayout(levels.length, 1));
                 for (String level : levels
                         ) {
+                    allLevels.add(level);
                     JButton levelButton = new JButton(level);
                     levelButton.setHorizontalAlignment(0);
                     levelPanel.add(levelButton);
@@ -435,6 +440,8 @@ public class MiniGraphUIIndoor {
                                 // get from and to node id
                                 fromRes = index.findClosest(fromLat, fromLon, EdgeFilter.ALL_EDGES);
                                 toRes = index.findClosest(toLat, toLon, EdgeFilter.ALL_EDGES);
+                                //fromRes = index.findClosest(fromLat, fromLon, new EdgeFilterIndoor("0",allLevels));
+                                //toRes = index.findClosest(toLat, toLon, new EdgeFilterIndoor("0",allLevels));
                                 logger.info("found ids " + fromRes + " -> " + toRes + " in " + sw.stop().getSeconds() + "s");
 
                                 repaintPaths();

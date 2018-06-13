@@ -145,7 +145,7 @@ public class LevelIndex implements Storable<LevelIndex> {
         return levels.getCapacity();
     }
 
-    public void copyTo(LevelIndex nameIndex) {
-        levels.copyTo(nameIndex.levels);
+    public void copyTo(LevelIndex levelIndex) {
+        levels.copyTo(levelIndex.levels);
     }
 }
