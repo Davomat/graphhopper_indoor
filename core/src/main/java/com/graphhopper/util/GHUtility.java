@@ -422,20 +422,12 @@ public class GHUtility {
             throw new UnsupportedOperationException("Not supported. Edge is empty.");
         }
 
-        @Override
-        public String getLevel() {
-            throw new UnsupportedOperationException("Not supported. Edge is empty.");
-        }
 
         @Override
         public EdgeIteratorState setName(String name) {
             throw new UnsupportedOperationException("Not supported. Edge is empty.");
         }
 
-        @Override
-        public EdgeIteratorState setLevel(String level) {
-            throw new UnsupportedOperationException("Not supported. Edge is empty.");
-        }
 
         @Override
         public boolean getBool(int key, boolean _default) {

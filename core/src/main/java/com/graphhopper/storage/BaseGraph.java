@@ -1,14 +1,14 @@
 /*
  *  Licensed to GraphHopper GmbH under one or more contributor
- *  license agreements. See the NOTICE file distributed with this work for 
+ *  license agreements. See the NOTICE file distributed with this work for
  *  additional information regarding copyright ownership.
- * 
- *  GraphHopper GmbH licenses this file to you under the Apache License, 
- *  Version 2.0 (the "License"); you may not use this file except in 
+ *
+ *  GraphHopper GmbH licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except in
  *  compliance with the License. You may obtain a copy of the License at
- * 
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,7 +24,6 @@ import com.graphhopper.routing.util.AllEdgesIterator;
 import com.graphhopper.routing.util.EdgeFilter;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.FlagEncoder;
-import com.graphhopper.search.LevelIndex;
 import com.graphhopper.search.NameIndex;
 import com.graphhopper.util.*;
 import com.graphhopper.util.shapes.BBox;
@@ -52,7 +51,6 @@ class BaseGraph implements Graph {
     final NodeAccess nodeAccess;
     final GraphExtension extStorage;
     final NameIndex nameIndex;
-    final LevelIndex levelIndex;
     final BitUtil bitUtil;
     final EncodingManager encodingManager;
     final EdgeAccess edgeAccess;
@@ -68,7 +66,7 @@ class BaseGraph implements Graph {
     // node memory layout:
     protected int N_EDGE_REF, N_LAT, N_LON, N_ELE, N_ADDITIONAL;
     // edge memory layout not found in EdgeAccess:
-    int E_GEO, E_NAME, E_LEVEL, E_ADDITIONAL;
+    int E_GEO, E_NAME, E_ADDITIONAL;
     /**
      * Specifies how many entries (integers) are used per edge.
      */
@@ -95,7 +93,6 @@ class BaseGraph implements Graph {
         this.bitUtil = BitUtil.get(dir.getByteOrder());
         this.wayGeometry = dir.find("geometry");
         this.nameIndex = new NameIndex(dir);
-        this.levelIndex = new LevelIndex(dir);
         this.nodes = dir.find("nodes");
         this.edges = dir.find("edges");
         this.listener = listener;
@@ -236,7 +233,6 @@ class BaseGraph implements Graph {
 
         E_GEO = nextEdgeEntryIndex(4);
         E_NAME = nextEdgeEntryIndex(4);
-        E_LEVEL = nextEdgeEntryIndex(4);
         if (extStorage.isRequireEdgeField())
             E_ADDITIONAL = nextEdgeEntryIndex(4);
         else
@@ -337,7 +333,6 @@ class BaseGraph implements Graph {
         edges.setSegmentSize(bytes);
         wayGeometry.setSegmentSize(bytes);
         nameIndex.setSegmentSize(bytes);
-        levelIndex.setSegmentSize(bytes);
         extStorage.setSegmentSize(bytes);
     }
 
@@ -365,7 +360,6 @@ class BaseGraph implements Graph {
         initSize = Math.min(initSize, 2000);
         wayGeometry.create(initSize);
         nameIndex.create(initSize);
-        levelIndex.create(initSize);
         extStorage.create(initSize);
         initStorage();
         // 0 stands for no separate geoRef
@@ -378,7 +372,6 @@ class BaseGraph implements Graph {
         return "edges:" + nf(edgeCount) + "(" + edges.getCapacity() / Helper.MB + "MB), "
                 + "nodes:" + nf(getNodes()) + "(" + nodes.getCapacity() / Helper.MB + "MB), "
                 + "name:(" + nameIndex.getCapacity() / Helper.MB + "MB), "
-                + "level:(" + levelIndex.getCapacity() / Helper.MB + "MB), "
                 + "geo:" + nf(maxGeoRef) + "(" + wayGeometry.getCapacity() / Helper.MB + "MB), "
                 + "bounds:" + bounds;
     }
@@ -390,7 +383,6 @@ class BaseGraph implements Graph {
 
         wayGeometry.flush();
         nameIndex.flush();
-        levelIndex.flush();
         edges.flush();
         nodes.flush();
         extStorage.flush();
@@ -399,14 +391,13 @@ class BaseGraph implements Graph {
     void close() {
         wayGeometry.close();
         nameIndex.close();
-        levelIndex.close();
         edges.close();
         nodes.close();
         extStorage.close();
     }
 
     long getCapacity() {
-        return edges.getCapacity() + nodes.getCapacity() + nameIndex.getCapacity() + levelIndex.getCapacity()
+        return edges.getCapacity() + nodes.getCapacity() + nameIndex.getCapacity()
                 + wayGeometry.getCapacity() + extStorage.getCapacity();
     }
 
@@ -431,9 +422,6 @@ class BaseGraph implements Graph {
         if (!nameIndex.loadExisting())
             throw new IllegalStateException("Cannot load name index. corrupt file or directory? " + dir);
 
-        if (!levelIndex.loadExisting())
-            throw new IllegalStateException("Cannot load level index. corrupt file or directory? " + dir);
-
         if (!extStorage.loadExisting())
             throw new IllegalStateException("Cannot load extended storage. corrupt file or directory? " + dir);
 
@@ -452,7 +440,6 @@ class BaseGraph implements Graph {
     EdgeIteratorState copyProperties(CommonEdgeIterator from, EdgeIteratorState to) {
         to.setDistance(from.getDistance()).
                 setName(from.getName()).
-                setLevel(from.getLevel()).
                 setFlags(from.getDirectFlags()).
                 setWayGeometry(from.fetchWayGeometry(0));
 
@@ -566,11 +553,8 @@ class BaseGraph implements Graph {
         edges.copyTo(clonedG.edges);
         clonedG.loadEdgesHeader();
 
-        // name
+        // names
         nameIndex.copyTo(clonedG.nameIndex);
-
-        // level
-        levelIndex.copyTo(clonedG.levelIndex);
 
         // geometry
         setWayGeometryHeader();
@@ -892,14 +876,6 @@ class BaseGraph implements Graph {
         edges.setInt(edgePointer + E_NAME, nameIndexRef);
     }
 
-    private void setLevel(long edgePointer, String level) {
-        int levelIndexRef = (int) levelIndex.put(level);
-        if (levelIndexRef < 0)
-            throw new IllegalStateException("Too many levels are stored, currently limited to int pointer");
-
-        edges.setInt(edgePointer + E_LEVEL, levelIndexRef);
-    }
-
     GHBitSet getRemovedNodes() {
         if (removedNodes == null)
             removedNodes = new GHBitSetImpl(getNodes());
@@ -943,7 +919,7 @@ class BaseGraph implements Graph {
                 this.edgePointer = edgeAccess.toPointer(tmpEdgeId);
             }
 
-            // expect only edgePointer is properly initialized via setEdgeId            
+            // expect only edgePointer is properly initialized via setEdgeId
             baseNode = edgeAccess.edges.getInt(edgePointer + edgeAccess.E_NODEA);
             if (baseNode == EdgeAccess.NO_NODE)
                 throw new IllegalStateException("content of edgeId " + edgeId + " is marked as invalid - ie. the edge is already removed!");
@@ -991,7 +967,7 @@ class BaseGraph implements Graph {
                 reverse = baseNode > adjNode;
                 freshFlags = false;
 
-                // position to next edge                
+                // position to next edge
                 nextEdgeId = edgeAccess.getEdgeRef(baseNode, adjNode, edgePointer);
                 assert nextEdgeId != edgeId : ("endless loop detected for base node: " + baseNode + ", adj node: " + adjNode
                         + ", edge pointer: " + edgePointer + ", edge: " + edgeId);
@@ -1017,8 +993,6 @@ class BaseGraph implements Graph {
             assert ret;
             return iter;
         }
-
-
     }
 
     /**
@@ -1201,21 +1175,10 @@ class BaseGraph implements Graph {
             return baseGraph.nameIndex.get(nameIndexRef);
         }
 
+
         @Override
         public EdgeIteratorState setName(String name) {
             baseGraph.setName(edgePointer, name);
-            return this;
-        }
-
-        @Override
-        public String getLevel() {
-            int levelIndexRef = baseGraph.edges.getInt(edgePointer + baseGraph.E_LEVEL);
-            return baseGraph.levelIndex.get(levelIndexRef);
-        }
-
-        @Override
-        public EdgeIteratorState setLevel(String level) {
-            baseGraph.setLevel(edgePointer,level);
             return this;
         }
 
@@ -1231,4 +1194,6 @@ class BaseGraph implements Graph {
             return getEdge() + " " + getBaseNode() + "-" + getAdjNode();
         }
     }
+
+
 }

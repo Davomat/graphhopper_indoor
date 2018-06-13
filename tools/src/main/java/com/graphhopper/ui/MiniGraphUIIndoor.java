@@ -93,7 +93,7 @@ public class MiniGraphUIIndoor {
         HintsMap map = new HintsMap("fastest").
                 setVehicle("indoor");
 
-        boolean ch = true;
+        boolean ch = false;
         if (ch) {
             map.put(Parameters.Landmark.DISABLE, true);
             weighting = hopper.getCHFactoryDecorator().getWeightings().get(0);

@@ -16,15 +16,22 @@ public class EdgeFilterIndoor implements EdgeFilter {
 
     @Override
     public boolean accept(EdgeIteratorState edgeState) {
-        if (edgeState.getLevel().equals(currentLevel))
-            return true;
-        if (edgeState.getLevel().contains(";")) {
-            String[] levels = edgeState.getLevel().split(";");
-            for (String level : levels) {
-                if (level.equals(currentLevel))
-                    return true;
-            }
+        EdgeIteratorIndoor edgeIndoor;
+        if(edgeState instanceof  EdgeIteratorIndoor)
+            edgeIndoor = (EdgeIteratorIndoor) edgeState;
+        else{
+            throw new IllegalStateException("You need to use an indoor edge for this edge Filter");
         }
+
+        if (edgeIndoor.getLevel().equals(currentLevel))
+            return true;
+//        if (edgeIndoor.getLevel().contains(";")) {
+//            String[] levels = edgeIndoor.getLevel().split(";");
+//            for (String level : levels) {
+//                if (level.equals(currentLevel))
+//                    return true;
+//            }
+//        }
         return false;
     }
 

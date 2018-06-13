@@ -136,18 +136,6 @@ public class VirtualEdgeIteratorState implements EdgeIteratorState, CHEdgeIterat
         return this;
     }
 
-    //TODO implement?
-    @Override
-    public EdgeIteratorState setLevel(String level) {
-        return null;
-    }
-
-    //TODO implement
-    @Override
-    public String getLevel() {
-        return null;
-    }
-
     @Override
     public boolean getBool(int key, boolean _default) {
         if (key == EdgeIteratorState.K_UNFAVORED_EDGE)
