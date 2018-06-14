@@ -1,34 +1,60 @@
 package com.graphhopper.storage;
 
 
+import com.graphhopper.routing.util.EdgeFilterIndoor;
 import com.graphhopper.routing.util.EdgeIteratorIndoor;
 import com.graphhopper.routing.util.EdgeFilter;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.search.LevelIndex;
+import com.graphhopper.search.NameIndex;
+import com.graphhopper.util.BitUtil;
+import com.graphhopper.util.EdgeExplorer;
 import com.graphhopper.util.EdgeIteratorState;
+
+import java.util.HashSet;
+import java.util.Set;
 
 
 public class BaseGraphIndoor extends BaseGraph {
     final LevelIndex levelIndex;
     int E_LEVEL;
+    final EncodingManager encodingManager;
+    private final InternalGraphEventListener listener;
+    private final Directory dir;
+
+
 
     public BaseGraphIndoor(Directory dir, final EncodingManager encodingManager, boolean withElevation,
                            InternalGraphEventListener listener, GraphExtension extendedStorage) {
         super(dir, encodingManager, withElevation, listener, extendedStorage);
         this.levelIndex = new LevelIndex(dir);
-
+        this.encodingManager = encodingManager;
+        this.listener = listener;
+        this.dir = dir;
     }
 
     static abstract class CommonEdgeIteratorIndoor extends CommonEdgeIterator implements EdgeIteratorIndoor{
         BaseGraphIndoor baseGraph;
+        protected long edgePointer;
+        protected int baseNode;
+        protected int adjNode;
+        protected EdgeAccess edgeAccess;
 
         public CommonEdgeIteratorIndoor(long edgePointer, EdgeAccess edgeAccess, BaseGraphIndoor baseGraph){
             super(edgePointer,edgeAccess,baseGraph);
+            this.baseGraph = baseGraph;
+            this.edgePointer = edgePointer;
+            this.edgeAccess = edgeAccess;
         }
 
         public EdgeIteratorIndoor setLevel(String level) {
             baseGraph.setLevel(edgePointer, level);
             return this;
+        }
+
+        public String getLevel() {
+            int levelIndexRef = baseGraph.edges.getInt(edgePointer + baseGraph.E_LEVEL);
+            return baseGraph.levelIndex.get(levelIndexRef);
         }
     }
 
@@ -59,6 +85,7 @@ public class BaseGraphIndoor extends BaseGraph {
     void create(long initSize) {
         super.create(initSize);
         levelIndex.create(initSize);
+        initStorage();
 
     }
 
@@ -84,15 +111,26 @@ public class BaseGraphIndoor extends BaseGraph {
     void initStorage() {
         super.initStorage();
         E_LEVEL = nextEdgeEntryIndex(4);
+        initNodeAndEdgeEntrySize();
+        listener.initStorage();
 
     }
 
+    @Override
+    void loadExisting(String dim) {
+        super.loadExisting(dim);
+        if (!levelIndex.loadExisting())
+            throw new IllegalStateException("Cannot load name index. corrupt file or directory? " + dir);
+        initStorage();
+    }
 
     protected static class EdgeIterableIndoor extends EdgeIterable implements EdgeIteratorIndoor{
         private  BaseGraphIndoor baseGraph;
+        EdgeFilter filter;
         public EdgeIterableIndoor(BaseGraphIndoor baseGraph, EdgeAccess edgeAccess, EdgeFilter filter){
             super(baseGraph,edgeAccess,filter);
             this.baseGraph = baseGraph;
+            this.filter = filter;
         }
 
         @Override
@@ -125,4 +163,16 @@ public class BaseGraphIndoor extends BaseGraph {
 
         return iter;
     }
+
+    @Override
+    public EdgeExplorer createEdgeExplorer() {
+        return this.createEdgeExplorer(new EdgeFilterIndoor("0", new HashSet<String>()));
+    }
+
+    @Override
+    public EdgeExplorer createEdgeExplorer(EdgeFilter filter) {
+        return new EdgeIterableIndoor(this,edgeAccess,filter);
+    }
+
+
 }

@@ -34,7 +34,7 @@ public class LevelIndex implements Storable<LevelIndex> {
     private static final long START_POINTER = 1;
     private final DataAccess levels;
     private long bytePointer = START_POINTER;
-    // minor optimization for the previous stored name
+    // minor optimization for the previous stored level
     private String lastLevel;
     private long lastIndex;
 

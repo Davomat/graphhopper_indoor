@@ -84,8 +84,13 @@ public class IndoorFlagEncoder extends AbstractFlagEncoder {
         allowedHighwayTags.addAll(safeHighwayTags);
         allowedHighwayTags.addAll(avoidHighwayTags);
 
+        maxPossibleSpeed = MEAN_SPEED;
 
         init();
+    }
+
+    public IndoorFlagEncoder(String propertiesStr) {
+        this(new PMap(propertiesStr));
     }
 
     @Override
@@ -184,6 +189,9 @@ public class IndoorFlagEncoder extends AbstractFlagEncoder {
         int priorityFromRelation = 0;
         if (relationFlags != 0)
             priorityFromRelation = (int) relationCodeEncoder.getValue(relationFlags);
+
+        flags = speedEncoder.setDoubleValue(flags, MEAN_SPEED);
+        flags |= directionBitMask;
 
         flags = priorityWayEncoder.setValue(flags, handlePriority(way, priorityFromRelation));
         return flags;

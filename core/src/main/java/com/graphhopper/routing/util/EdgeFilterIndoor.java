@@ -7,11 +7,12 @@ import java.util.Set;
 
 public class EdgeFilterIndoor implements EdgeFilter {
     private String currentLevel = "";
-    private Set<String> allLevels = new HashSet<String>();
+    private Set<String> allLevels;
 
     public EdgeFilterIndoor(String currentLevel, Set<String> allLevels) {
         this.allLevels = allLevels;
         this.currentLevel = currentLevel;
+        allLevels.add(currentLevel);
     }
 
     @Override
@@ -20,7 +21,8 @@ public class EdgeFilterIndoor implements EdgeFilter {
         if(edgeState instanceof  EdgeIteratorIndoor)
             edgeIndoor = (EdgeIteratorIndoor) edgeState;
         else{
-            throw new IllegalStateException("You need to use an indoor edge for this edge Filter");
+            throw new IllegalStateException("You need to use an indoor edge for this edge Filter." +
+                    "You used " + edgeState.getClass() + " instead");
         }
 
         if (edgeIndoor.getLevel().equals(currentLevel))

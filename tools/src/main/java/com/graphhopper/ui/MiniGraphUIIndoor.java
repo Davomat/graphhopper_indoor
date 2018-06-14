@@ -81,7 +81,7 @@ public class MiniGraphUIIndoor {
     private boolean fastPaint = false;
     private QueryResult fromRes;
     private QueryResult toRes;
-    private Set<String> allLevels = new HashSet<String>();
+    private Set<String> allLevels = new HashSet<>();
 
 
 
