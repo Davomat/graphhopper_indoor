@@ -1,23 +1,16 @@
 package com.graphhopper.storage;
 
 
-import com.graphhopper.routing.util.EdgeFilterIndoor;
-import com.graphhopper.routing.util.EdgeIteratorIndoor;
-import com.graphhopper.routing.util.EdgeFilter;
-import com.graphhopper.routing.util.EncodingManager;
-import com.graphhopper.search.LevelIndex;
-import com.graphhopper.search.NameIndex;
-import com.graphhopper.util.BitUtil;
+import com.graphhopper.routing.util.*;
+import com.graphhopper.search.FloorIndex;
 import com.graphhopper.util.EdgeExplorer;
-import com.graphhopper.util.EdgeIteratorState;
 
 import java.util.HashSet;
-import java.util.Set;
 
 
 public class BaseGraphIndoor extends BaseGraph {
-    final LevelIndex levelIndex;
-    int E_LEVEL;
+    final FloorIndex floorIndex;
+    int E_FLOOR;
     final EncodingManager encodingManager;
     private final InternalGraphEventListener listener;
     private final Directory dir;
@@ -27,64 +20,54 @@ public class BaseGraphIndoor extends BaseGraph {
     public BaseGraphIndoor(Directory dir, final EncodingManager encodingManager, boolean withElevation,
                            InternalGraphEventListener listener, GraphExtension extendedStorage) {
         super(dir, encodingManager, withElevation, listener, extendedStorage);
-        this.levelIndex = new LevelIndex(dir);
+        this.floorIndex = new FloorIndex(dir);
         this.encodingManager = encodingManager;
         this.listener = listener;
         this.dir = dir;
     }
 
-    static abstract class CommonEdgeIteratorIndoor extends CommonEdgeIterator implements EdgeIteratorIndoor{
-        BaseGraphIndoor baseGraph;
-        protected long edgePointer;
-        protected int baseNode;
-        protected int adjNode;
-        protected EdgeAccess edgeAccess;
 
-        public CommonEdgeIteratorIndoor(long edgePointer, EdgeAccess edgeAccess, BaseGraphIndoor baseGraph){
-            super(edgePointer,edgeAccess,baseGraph);
+
+    private void setFloor(long edgePointer, String floor) {
+        int floorIndexRef = (int) floorIndex.put(floor);
+        if (floorIndexRef < 0)
+            throw new IllegalStateException("Too many floorss are stored, currently limited to int pointer");
+
+        edges.setInt(edgePointer + E_FLOOR, floorIndexRef);
+    }
+
+
+    protected static class AllEdgeIteratorIndoor extends AllEdgeIterator implements EdgeIteratorIndoor{
+        private BaseGraphIndoor baseGraph;
+
+        public AllEdgeIteratorIndoor(BaseGraphIndoor baseGraph) {
+            super(baseGraph);
             this.baseGraph = baseGraph;
-            this.edgePointer = edgePointer;
-            this.edgeAccess = edgeAccess;
         }
 
-        public EdgeIteratorIndoor setLevel(String level) {
-            baseGraph.setLevel(edgePointer, level);
+        public String getFloor(){
+            int floorIndexRef = baseGraph.edges.getInt(edgePointer + baseGraph.E_FLOOR);
+            return baseGraph.floorIndex.get(floorIndexRef);
+        }
+
+        @Override
+        public EdgeIteratorIndoor setFloor(String floor) {
+            baseGraph.setFloor(edgePointer, floor);
             return this;
         }
-
-        public String getLevel() {
-            int levelIndexRef = baseGraph.edges.getInt(edgePointer + baseGraph.E_LEVEL);
-            return baseGraph.levelIndex.get(levelIndexRef);
-        }
     }
-
-    private void setLevel(long edgePointer, String level) {
-        int levelIndexRef = (int) levelIndex.put(level);
-        if (levelIndexRef < 0)
-            throw new IllegalStateException("Too many levels are stored, currently limited to int pointer");
-
-        edges.setInt(edgePointer + E_LEVEL, levelIndexRef);
-    }
-
-
-//    protected class AllEdgeIteratorIndoor extends AllEdgeIterator{
-//        public AllEdgeIteratorIndoor(BaseGraphIndoor baseGraph) {
-//            super(baseGraph);
-//        }
-//
-//    }
 
     @Override
     void setSegmentSize(int bytes) {
         super.setSegmentSize(bytes);
-        levelIndex.setSegmentSize(bytes);
+        floorIndex.setSegmentSize(bytes);
 
     }
 
     @Override
     void create(long initSize) {
         super.create(initSize);
-        levelIndex.create(initSize);
+        floorIndex.create(initSize);
         initStorage();
 
     }
@@ -92,25 +75,25 @@ public class BaseGraphIndoor extends BaseGraph {
     @Override
     void flush() {
         super.flush();
-        levelIndex.flush();
+        floorIndex.flush();
     }
 
     @Override
     void close() {
         super.close();
-        levelIndex.close();
+        floorIndex.close();
     }
 
     void _copyTo(BaseGraphIndoor clonedG) {
         super._copyTo(clonedG);
-        //levels
-        levelIndex.copyTo(clonedG.levelIndex);
+        //floors
+        floorIndex.copyTo(clonedG.floorIndex);
     }
 
     @Override
     void initStorage() {
         super.initStorage();
-        E_LEVEL = nextEdgeEntryIndex(4);
+        E_FLOOR = nextEdgeEntryIndex(4);
         initNodeAndEdgeEntrySize();
         listener.initStorage();
 
@@ -119,7 +102,7 @@ public class BaseGraphIndoor extends BaseGraph {
     @Override
     void loadExisting(String dim) {
         super.loadExisting(dim);
-        if (!levelIndex.loadExisting())
+        if (!floorIndex.loadExisting())
             throw new IllegalStateException("Cannot load name index. corrupt file or directory? " + dir);
         initStorage();
     }
@@ -134,15 +117,15 @@ public class BaseGraphIndoor extends BaseGraph {
         }
 
         @Override
-        public String getLevel() {
-            int levelIndexRef = baseGraph.edges.getInt(edgePointer + baseGraph.E_LEVEL);
-            return baseGraph.levelIndex.get(levelIndexRef);
+        public String getFloor() {
+            int floorIndexRef = baseGraph.edges.getInt(edgePointer + baseGraph.E_FLOOR);
+            return baseGraph.floorIndex.get(floorIndexRef);
         }
 
 
         @Override
-        public EdgeIteratorIndoor setLevel(String level) {
-            baseGraph.setLevel(edgePointer, level);
+        public EdgeIteratorIndoor setFloor(String floor) {
+            baseGraph.setFloor(edgePointer, floor);
             return this;
         }
     }
@@ -172,6 +155,11 @@ public class BaseGraphIndoor extends BaseGraph {
     @Override
     public EdgeExplorer createEdgeExplorer(EdgeFilter filter) {
         return new EdgeIterableIndoor(this,edgeAccess,filter);
+    }
+
+    @Override
+    public AllEdgesIterator getAllEdges() {
+        return new AllEdgeIteratorIndoor(this);
     }
 
 

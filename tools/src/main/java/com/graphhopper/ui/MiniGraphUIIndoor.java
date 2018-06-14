@@ -203,17 +203,13 @@ public class MiniGraphUIIndoor {
                     levelPanel.add(levelButton);
                 }
 
-
-
-
-
-
         mainPanel = new LayeredPanel();
 
         // TODO make it correct with bitset-skipping too
         final GHBitSet bitset = new GHTBitSet(graph.getNodes());
         mainPanel.addLayer(roadsLayer = new DefaultMapLayer() {
             Random rand = new Random();
+            String currentFloor = "0";
 
             @Override
             public void paintComponent(Graphics2D g2) {
@@ -242,6 +238,11 @@ public class MiniGraphUIIndoor {
 
                 AllEdgesIterator edge = graph.getAllEdges();
                 while (edge.next()) {
+                    if(edge instanceof EdgeIteratorIndoor){
+                        EdgeIteratorIndoor edgeIndoor = (EdgeIteratorIndoor) edge;
+                        if(!edgeIndoor.getFloor().trim().equals("0;1"))
+                            continue;
+                    }
                     if (fastPaint && rand.nextInt(30) > 1)
                         continue;
 
@@ -268,7 +269,7 @@ public class MiniGraphUIIndoor {
                     g2.setColor(Color.GREEN);
                     boolean fwd = encoder.isForward(edge.getFlags());
                     boolean bwd = encoder.isBackward(edge.getFlags());
-                    float width = speed > 90 ? 1f : 0.8f;
+                    float width = 0.8f;
                     if (fwd && !bwd) {
                         mg.plotDirectedEdge(g2, lat, lon, lat2, lon2, width);
                     } else {
@@ -301,7 +302,6 @@ public class MiniGraphUIIndoor {
                 mg.plotNode(g2, qGraph.getNodeAccess(), fromRes.getClosestNode(), red, 10, "");
                 mg.plotNode(g2, qGraph.getNodeAccess(), toRes.getClosestNode(), red, 10, "");
 
-                g2.setColor(Color.blue.brighter().brighter());
                 path = algo.calcPath(fromRes.getClosestNode(), toRes.getClosestNode());
                 sw.stop();
 
@@ -370,7 +370,7 @@ public class MiniGraphUIIndoor {
 
         double prevLat = Double.NaN;
         double prevLon = Double.NaN;
-        boolean plotNodes = false;
+        boolean plotNodes = true;
         IntIndexedContainer nodes = tmpPath.calcNodes();
         if (plotNodes) {
             for (int i = 0; i < nodes.size(); i++) {
@@ -438,10 +438,10 @@ public class MiniGraphUIIndoor {
                                 logger.info("start searching from " + fromLat + "," + fromLon
                                         + " to " + toLat + "," + toLon);
                                 // get from and to node id
-                                fromRes = index.findClosest(fromLat, fromLon, EdgeFilter.ALL_EDGES);
-                                toRes = index.findClosest(toLat, toLon, EdgeFilter.ALL_EDGES);
-                                //fromRes = index.findClosest(fromLat, fromLon, new EdgeFilterIndoor("0",allLevels));
-                                //toRes = index.findClosest(toLat, toLon, new EdgeFilterIndoor("0",allLevels));
+                                //fromRes = index.findClosest(fromLat, fromLon, EdgeFilter.ALL_EDGES);
+                                //toRes = index.findClosest(toLat, toLon, EdgeFilter.ALL_EDGES);
+                                fromRes = index.findClosest(fromLat, fromLon, new EdgeFilterIndoor("0",allLevels));
+                                toRes = index.findClosest(toLat, toLon, new EdgeFilterIndoor("0",allLevels));
                                 logger.info("found ids " + fromRes + " -> " + toRes + " in " + sw.stop().getSeconds() + "s");
 
                                 repaintPaths();

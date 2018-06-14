@@ -2,17 +2,16 @@ package com.graphhopper.routing.util;
 
 import com.graphhopper.util.EdgeIteratorState;
 
-import java.util.HashSet;
 import java.util.Set;
 
 public class EdgeFilterIndoor implements EdgeFilter {
-    private String currentLevel = "";
-    private Set<String> allLevels;
+    private String currentFloor = "";
+    private Set<String> allFloors;
 
-    public EdgeFilterIndoor(String currentLevel, Set<String> allLevels) {
-        this.allLevels = allLevels;
-        this.currentLevel = currentLevel;
-        allLevels.add(currentLevel);
+    public EdgeFilterIndoor(String currentFloor, Set<String> allFloors) {
+        this.allFloors = allFloors;
+        this.currentFloor = currentFloor;
+        allFloors.add(currentFloor);
     }
 
     @Override
@@ -25,30 +24,24 @@ public class EdgeFilterIndoor implements EdgeFilter {
                     "You used " + edgeState.getClass() + " instead");
         }
 
-        if (edgeIndoor.getLevel().equals(currentLevel))
+        if (edgeIndoor.getFloor().equals(currentFloor))
             return true;
-//        if (edgeIndoor.getLevel().contains(";")) {
-//            String[] levels = edgeIndoor.getLevel().split(";");
-//            for (String level : levels) {
-//                if (level.equals(currentLevel))
-//                    return true;
-//            }
-//        }
+
         return false;
     }
 
-    public void setCurrentLevel(String currentLevel) {
-        if(!allLevels.contains(currentLevel)){
-            throw new IllegalStateException("level must be part of all the levels in the building. Did you initialize allLevels " +
+    public void setCurrentFloor(String currentFloor) {
+        if(!allFloors.contains(currentFloor)){
+            throw new IllegalStateException("floor must be part of all the floors in the building. Did you initialize allFloors " +
                     "correctly`?");
         }
-        this.currentLevel = currentLevel;
+        this.currentFloor = currentFloor;
     }
 
-    public void setAllLevels(Set<String> allLevels) {
-        this.allLevels = allLevels;
-        if (allLevels.isEmpty()) {
-            throw new IllegalStateException("You need to specify the levels in the building. If you don't want to provide indoor" +
+    public void setAllFloors(Set<String> allFloors) {
+        this.allFloors = allFloors;
+        if (allFloors.isEmpty()) {
+            throw new IllegalStateException("You need to specify the floors in the building. If you don't want to provide indoor" +
                     " navigation, use another EdgeFilter!");
         }
     }

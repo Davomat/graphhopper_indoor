@@ -29,8 +29,8 @@ import org.slf4j.LoggerFactory;
  * @author Ottavio Campana
  * @author Peter Karich
  */
-public class LevelIndex implements Storable<LevelIndex> {
-    private static final Logger logger = LoggerFactory.getLogger(LevelIndex.class);
+public class FloorIndex implements Storable<FloorIndex> {
+    private static final Logger logger = LoggerFactory.getLogger(FloorIndex.class);
     private static final long START_POINTER = 1;
     private final DataAccess levels;
     private long bytePointer = START_POINTER;
@@ -38,12 +38,12 @@ public class LevelIndex implements Storable<LevelIndex> {
     private String lastLevel;
     private long lastIndex;
 
-    public LevelIndex(Directory dir) {
+    public FloorIndex(Directory dir) {
         levels = dir.find("levels");
     }
 
     @Override
-    public LevelIndex create(long initBytes) {
+    public FloorIndex create(long initBytes) {
         levels.create(initBytes);
         return this;
     }
@@ -105,7 +105,7 @@ public class LevelIndex implements Storable<LevelIndex> {
 
     public String get(long pointer) {
         if (pointer < 0)
-            throw new IllegalStateException("Pointer to access LevelIndex cannot be negative:" + pointer);
+            throw new IllegalStateException("Pointer to access FloorIndex cannot be negative:" + pointer);
 
         // default
         if (pointer == 0)
@@ -145,7 +145,7 @@ public class LevelIndex implements Storable<LevelIndex> {
         return levels.getCapacity();
     }
 
-    public void copyTo(LevelIndex levelIndex) {
-        levels.copyTo(levelIndex.levels);
+    public void copyTo(FloorIndex floorIndex) {
+        levels.copyTo(floorIndex.levels);
     }
 }
