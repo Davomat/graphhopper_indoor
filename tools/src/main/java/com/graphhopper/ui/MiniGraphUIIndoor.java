@@ -43,6 +43,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
@@ -77,11 +79,15 @@ public class MiniGraphUIIndoor {
     private JPanel infoPanel;
     private JPanel levelPanel;
     private LayeredPanel mainPanel;
-    private MapLayer roadsLayer;
+    private WayLayer wayLayer;
     private boolean fastPaint = false;
     private QueryResult fromRes;
     private QueryResult toRes;
     private Set<String> allLevels = new HashSet<>();
+
+    String currentFloor = "0";
+    String fromFloor = "";
+    String toFloor = "";
 
 
 
@@ -197,9 +203,11 @@ public class MiniGraphUIIndoor {
                 levelPanel = new JPanel(new GridLayout(levels.length, 1));
                 for (String level : levels
                         ) {
+                    level = level.trim();
                     allLevels.add(level);
                     JButton levelButton = new JButton(level);
                     levelButton.setHorizontalAlignment(0);
+                    levelButton.addActionListener(new ButtonListener(levelButton));
                     levelPanel.add(levelButton);
                 }
 
@@ -207,79 +215,7 @@ public class MiniGraphUIIndoor {
 
         // TODO make it correct with bitset-skipping too
         final GHBitSet bitset = new GHTBitSet(graph.getNodes());
-        mainPanel.addLayer(roadsLayer = new DefaultMapLayer() {
-            Random rand = new Random();
-            String currentFloor = "0";
-
-            @Override
-            public void paintComponent(Graphics2D g2) {
-                clearGraphics(g2);
-                int locs = graph.getNodes();
-                Rectangle d = getBounds();
-                BBox b = mg.setBounds(0, d.width, 0, d.height);
-                if (fastPaint) {
-                    rand.setSeed(0);
-                    bitset.clear();
-                }
-
-//                g2.setColor(Color.BLUE);
-//                double fromLat = 42.56819, fromLon = 1.603231;
-//                mg.plotText(g2, fromLat, fromLon, "from");
-//                QueryResult from = index.findClosest(fromLat, fromLon, EdgeFilter.ALL_EDGES);
-//                double toLat = 42.571034, toLon = 1.520662;
-//                mg.plotText(g2, toLat, toLon, "to");
-//                QueryResult to = index.findClosest(toLat, toLon, EdgeFilter.ALL_EDGES);
-//
-//                g2.setColor(Color.RED.brighter().brighter());
-//                path = prepare.createAlgo().calcPath(from, to);
-//                System.out.println("now: " + path.toDetailsString());
-//                plotPath(path, g2, 1);
-                g2.setColor(Color.black);
-
-                AllEdgesIterator edge = graph.getAllEdges();
-                while (edge.next()) {
-                    if(edge instanceof EdgeIteratorIndoor){
-                        EdgeIteratorIndoor edgeIndoor = (EdgeIteratorIndoor) edge;
-                        if(!edgeIndoor.getFloor().trim().equals("0;1"))
-                            continue;
-                    }
-                    if (fastPaint && rand.nextInt(30) > 1)
-                        continue;
-
-                    int nodeIndex = edge.getBaseNode();
-                    double lat = nodeAccess.getLatitude(nodeIndex);
-                    double lon = nodeAccess.getLongitude(nodeIndex);
-                    int nodeId = edge.getAdjNode();
-                    double lat2 = nodeAccess.getLatitude(nodeId);
-                    double lon2 = nodeAccess.getLongitude(nodeId);
-
-                    // mg.plotText(g2, lat, lon, "" + nodeIndex);
-                    if (!b.contains(lat, lon) && !b.contains(lat2, lon2))
-                        continue;
-
-                    int sum = nodeIndex + nodeId;
-                    if (fastPaint) {
-                        if (bitset.contains(sum))
-                            continue;
-
-                        bitset.add(sum);
-                    }
-
-                    double speed = encoder.getSpeed(edge.getFlags());
-                    g2.setColor(Color.GREEN);
-                    boolean fwd = encoder.isForward(edge.getFlags());
-                    boolean bwd = encoder.isBackward(edge.getFlags());
-                    float width = 0.8f;
-                    if (fwd && !bwd) {
-                        mg.plotDirectedEdge(g2, lat, lon, lat2, lon2, width);
-                    } else {
-                        mg.plotEdge(g2, lat, lon, lat2, lon2, width);
-                    }
-                }
-
-                g2.setColor(Color.BLACK);
-            }
-        });
+        mainPanel.addLayer(wayLayer = new WayLayer(graph,bitset));
 
         mainPanel.addLayer(pathLayer = new DefaultMapLayer() {
             @Override
@@ -315,8 +251,9 @@ public class MiniGraphUIIndoor {
                         + path.calcNodes().size() + ", millis: " + path.getTime()
                         + ", visited nodes:" + algo.getVisitedNodes());
                 g2.setColor(red);
-                plotPath(path, g2, 4);
+                plotPath(path, g2, 2);
             }
+
         });
 
         if (debug) {
@@ -370,7 +307,7 @@ public class MiniGraphUIIndoor {
 
         double prevLat = Double.NaN;
         double prevLon = Double.NaN;
-        boolean plotNodes = true;
+        boolean plotNodes = false;
         IntIndexedContainer nodes = tmpPath.calcNodes();
         if (plotNodes) {
             for (int i = 0; i < nodes.size(); i++) {
@@ -431,17 +368,19 @@ public class MiniGraphUIIndoor {
                             if (!fromDone) {
                                 fromLat = mg.getLat(e.getY());
                                 fromLon = mg.getLon(e.getX());
+                                fromFloor = currentFloor;
                             } else {
                                 double toLat = mg.getLat(e.getY());
                                 double toLon = mg.getLon(e.getX());
+                                toFloor = currentFloor;
                                 StopWatch sw = new StopWatch().start();
                                 logger.info("start searching from " + fromLat + "," + fromLon
                                         + " to " + toLat + "," + toLon);
                                 // get from and to node id
                                 //fromRes = index.findClosest(fromLat, fromLon, EdgeFilter.ALL_EDGES);
                                 //toRes = index.findClosest(toLat, toLon, EdgeFilter.ALL_EDGES);
-                                fromRes = index.findClosest(fromLat, fromLon, new EdgeFilterIndoor("0",allLevels));
-                                toRes = index.findClosest(toLat, toLon, new EdgeFilterIndoor("0",allLevels));
+                                fromRes = index.findClosest(fromLat, fromLon, new EdgeFilterIndoor(fromFloor));
+                                toRes = index.findClosest(toLat, toLon, new EdgeFilterIndoor(toFloor));
                                 logger.info("found ids " + fromRes + " -> " + toRes + " in " + sw.stop().getSeconds() + "s");
 
                                 repaintPaths();
@@ -513,9 +452,94 @@ public class MiniGraphUIIndoor {
         // (would to lead to artifacts)
         StopWatch sw = new StopWatch().start();
         pathLayer.repaint();
-        roadsLayer.repaint();
+        wayLayer.repaint();
         mainPanel.repaint();
         logger.info("roads painting took " + sw.stop().getSeconds() + " sec");
+    }
+
+    public class ButtonListener implements ActionListener{
+        private JButton floorButton;
+
+        public ButtonListener(JButton floorButton){
+            this.floorButton = floorButton;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if(e.getSource() == floorButton){
+                currentFloor = floorButton.getText();
+                System.out.println(floorButton.getText());
+                repaintRoads();
+            }
+        }
+    }
+
+
+    public class WayLayer extends DefaultMapLayer {
+
+        Random rand = new Random();
+        //String currentFloor;
+        Graph graph;
+        GHBitSet bitset;
+
+        WayLayer(Graph graph, GHBitSet bitset){
+            this.bitset = bitset;
+            this.graph = graph;
+        }
+
+        @Override
+        public void paintComponent(Graphics2D g2) {
+
+            clearGraphics(g2);
+            Rectangle d = getBounds();
+            BBox b = mg.setBounds(0, d.width, 0, d.height);
+            if (fastPaint) {
+                rand.setSeed(0);
+                bitset.clear();
+            }
+
+            AllEdgesIterator edge = graph.getAllEdges();
+            while (edge.next()) {
+                float width = 2.8f;
+                if(edge instanceof EdgeIteratorIndoor){
+                    EdgeIteratorIndoor edgeIndoor = (EdgeIteratorIndoor) edge;
+                    if(!edgeIndoor.getFloor().equals(currentFloor)) {
+                        g2.setColor(Color.LIGHT_GRAY);
+                        width = 2f;
+                        System.out.println(edgeIndoor.getFloor() + " - "+currentFloor);
+                    }
+                    else {
+                        g2.setColor(Color.GREEN);
+                    }
+                }
+                if (fastPaint && rand.nextInt(30) > 1)
+                    continue;
+
+                int nodeIndex = edge.getBaseNode();
+                double lat = nodeAccess.getLatitude(nodeIndex);
+                double lon = nodeAccess.getLongitude(nodeIndex);
+                int nodeId = edge.getAdjNode();
+                double lat2 = nodeAccess.getLatitude(nodeId);
+                double lon2 = nodeAccess.getLongitude(nodeId);
+
+                // mg.plotText(g2, lat, lon, "" + nodeIndex);
+                if (!b.contains(lat, lon) && !b.contains(lat2, lon2))
+                    continue;
+
+                int sum = nodeIndex + nodeId;
+                if (fastPaint) {
+                    if (bitset.contains(sum))
+                        continue;
+
+                    bitset.add(sum);
+                }
+
+                mg.plotEdge(g2, lat, lon, lat2, lon2, width);
+
+            }
+
+        }
+
     }
 
 }

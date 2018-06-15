@@ -6,12 +6,9 @@ import java.util.Set;
 
 public class EdgeFilterIndoor implements EdgeFilter {
     private String currentFloor = "";
-    private Set<String> allFloors;
 
-    public EdgeFilterIndoor(String currentFloor, Set<String> allFloors) {
-        this.allFloors = allFloors;
+    public EdgeFilterIndoor(String currentFloor) {
         this.currentFloor = currentFloor;
-        allFloors.add(currentFloor);
     }
 
     @Override
@@ -28,21 +25,5 @@ public class EdgeFilterIndoor implements EdgeFilter {
             return true;
 
         return false;
-    }
-
-    public void setCurrentFloor(String currentFloor) {
-        if(!allFloors.contains(currentFloor)){
-            throw new IllegalStateException("floor must be part of all the floors in the building. Did you initialize allFloors " +
-                    "correctly`?");
-        }
-        this.currentFloor = currentFloor;
-    }
-
-    public void setAllFloors(Set<String> allFloors) {
-        this.allFloors = allFloors;
-        if (allFloors.isEmpty()) {
-            throw new IllegalStateException("You need to specify the floors in the building. If you don't want to provide indoor" +
-                    " navigation, use another EdgeFilter!");
-        }
     }
 }

@@ -29,7 +29,7 @@ public class BaseGraphIndoor extends BaseGraph {
 
 
     private void setFloor(long edgePointer, String floor) {
-        int floorIndexRef = (int) floorIndex.put(floor);
+        int floorIndexRef = (int) floorIndex.put(floor.trim());
         if (floorIndexRef < 0)
             throw new IllegalStateException("Too many floorss are stored, currently limited to int pointer");
 
@@ -145,11 +145,6 @@ public class BaseGraphIndoor extends BaseGraph {
             iter.setAdditionalField(extStorage.getDefaultEdgeFieldValue());
 
         return iter;
-    }
-
-    @Override
-    public EdgeExplorer createEdgeExplorer() {
-        return this.createEdgeExplorer(new EdgeFilterIndoor("0", new HashSet<String>()));
     }
 
     @Override
