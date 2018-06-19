@@ -29,7 +29,6 @@ import static com.graphhopper.routing.util.PriorityCode.*;
 
 
 public class IndoorFlagEncoder extends AbstractFlagEncoder {
-    static final int SLOW_SPEED = 2;
     static final int MEAN_SPEED = 5;
     final Set<String> safeHighwayTags = new HashSet<String>();
     final Set<String> allowedHighwayTags = new HashSet<String>();
@@ -57,22 +56,23 @@ public class IndoorFlagEncoder extends AbstractFlagEncoder {
 
     public IndoorFlagEncoder(int speedBits, double speedFactor) {
         super(speedBits, speedFactor, 0);
-        restrictions.addAll(Arrays.asList("foot", "access"));
+        restrictions.addAll(Arrays.asList("indoor", "access"));
         restrictedValues.add("private");
         restrictedValues.add("no");
-        restrictedValues.add("restricted");
-        restrictedValues.add("military");
-        restrictedValues.add("emergency");
+        //restrictedValues.add("restricted");
+        //restrictedValues.add("military");
+        //restrictedValues.add("emergency");
 
         intendedValues.add("yes");
-        intendedValues.add("designated");
-        intendedValues.add("official");
-        intendedValues.add("permissive");
+        //intendedValues.add("designated");
+        //intendedValues.add("official");
+        //intendedValues.add("permissive");
+        intendedValues.add("public");
 
 
         setBlockByDefault(false);
-        potentialBarriers.add("gate");
-        potentialBarriers.add("stairs");
+        //potentialBarriers.add("gate");
+        //potentialBarriers.add("stairs");
 
         safeHighwayTags.add("footway");
         safeHighwayTags.add("stairs");
@@ -81,16 +81,13 @@ public class IndoorFlagEncoder extends AbstractFlagEncoder {
 
         //
         allowedHighwayTags.addAll(safeHighwayTags);
-        allowedHighwayTags.addAll(avoidHighwayTags);
+        //allowedHighwayTags.addAll(avoidHighwayTags);
 
         maxPossibleSpeed = MEAN_SPEED;
 
         init();
     }
 
-    public IndoorFlagEncoder(String propertiesStr) {
-        this(new PMap(propertiesStr));
-    }
 
     @Override
     public int getVersion() {

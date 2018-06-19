@@ -36,9 +36,8 @@ import static com.graphhopper.util.Helper.nf;
  */
 public class OSMReaderIndoor extends OSMReader {
     private static final Logger LOGGER = LoggerFactory.getLogger(OSMReader.class);
-    // levels in the building in the case of indoor navigation
+    // levels in the building
     private Set<String> allLevels = new HashSet<String>();
-    //private final Map<FlagEncoder, EdgeExplorer> inExplorerMap = new HashMap<FlagEncoder, EdgeExplorer>();
     private Date osmDataDate;
     private GraphHopperStorage ghStorage;
 
@@ -92,15 +91,7 @@ public class OSMReaderIndoor extends OSMReader {
 
 
                     }
-                } else if (item.isType(ReaderElement.RELATION)) {
-                    final ReaderRelation relation = (ReaderRelation) item;
-                    if (!relation.isMetaRelation() && relation.hasTag("type", "route"))
-                        prepareWaysWithRelationInfo(relation);
 
-                    if (++tmpRelationCounter % 100_000 == 0) {
-                        LOGGER.info(nf(tmpRelationCounter) + " (preprocess), osmWayMap:" + nf(getRelFlagsMap().size())
-                                + " " + Helper.getMemInfo());
-                    }
                 } else if (item.isType(ReaderElement.FILEHEADER)) {
                     final OSMFileHeader fileHeader = (OSMFileHeader) item;
                     osmDataDate = Helper.createFormatter().parse(fileHeader.getTag("timestamp"));

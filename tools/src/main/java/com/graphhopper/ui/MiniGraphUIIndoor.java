@@ -48,6 +48,7 @@ import java.awt.event.ActionEvent;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
+import java.util.Arrays;
 
 /**
  * A rough graphical user interface for visualizing the OSM graph. Mainly for debugging algorithms
@@ -64,40 +65,39 @@ public class MiniGraphUIIndoor {
     private final Graph routingGraph;
     private final NodeAccess nodeAccess;
     private final MapLayer pathLayer;
-    private final Weighting weighting;
-    private final FlagEncoder encoder;
-    private final RoutingAlgorithmFactory algoFactory;
-    private final AlgorithmOptions algoOpts;
+    private Weighting weighting;
+    private FlagEncoder encoder;
+    private RoutingAlgorithmFactory algoFactory;
+    private AlgorithmOptions algoOpts;
     // for moving
     int currentPosX;
     int currentPosY;
+    String currentLevel = "0";
+    String fromLevel = "";
+    String toLevel = "";
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Path path;
     private LocationIndexTree index;
     private String latLon = "";
     private GraphicsWrapper mg;
     private JPanel infoPanel;
-    private JPanel levelPanel;
+    private JPanel settings;
     private LayeredPanel mainPanel;
     private WayLayer wayLayer;
     private boolean fastPaint = false;
     private QueryResult fromRes;
     private QueryResult toRes;
-    private Set<String> allLevels = new HashSet<>();
-
-    String currentFloor = "0";
-    String fromFloor = "";
-    String toFloor = "";
-
-
-
+    private ButtonGroup allLevelButtons = new ButtonGroup();
+    private ButtonGroup allEncoders = new ButtonGroup();
+    HintsMap map;
+    final Graph graph;
 
     public MiniGraphUIIndoor(GraphHopperIndoor hopper, boolean debug) {
-        final Graph graph = hopper.getGraphHopperStorage();
+        graph = hopper.getGraphHopperStorage();
         this.nodeAccess = graph.getNodeAccess();
         encoder = hopper.getEncodingManager().getEncoder("indoor");
-        HintsMap map = new HintsMap("fastest").
-                setVehicle("indoor");
+        map = new HintsMap("fastest").
+                        setVehicle("indoor");
 
         boolean ch = false;
         if (ch) {
@@ -107,6 +107,14 @@ public class MiniGraphUIIndoor {
 
             final RoutingAlgorithmFactory tmpFactory = hopper.getAlgorithmFactory(map);
             algoFactory = new RoutingAlgorithmFactory() {
+
+                @Override
+                public RoutingAlgorithm createAlgo(Graph g, AlgorithmOptions opts) {
+                    // doable but ugly
+                    Weighting w = ((PrepareContractionHierarchies) tmpFactory).getWeighting();
+                    return new TmpAlgo(g, new PreparationWeighting(w), TraversalMode.NODE_BASED, mg).
+                            setEdgeFilter(new LevelEdgeFilter((CHGraph) routingGraph));
+                }
 
                 class TmpAlgo extends DijkstraBidirectionCH implements DebugAlgo {
                     private final GraphicsWrapper mg;
@@ -129,14 +137,6 @@ public class MiniGraphUIIndoor {
 
                         super.updateBestPath(es, bestEE, currLoc);
                     }
-                }
-
-                @Override
-                public RoutingAlgorithm createAlgo(Graph g, AlgorithmOptions opts) {
-                    // doable but ugly
-                    Weighting w = ((PrepareContractionHierarchies) tmpFactory).getWeighting();
-                    return new TmpAlgo(g, new PreparationWeighting(w), TraversalMode.NODE_BASED, mg).
-                            setEdgeFilter(new LevelEdgeFilter((CHGraph) routingGraph));
                 }
             };
             algoOpts = new AlgorithmOptions(Algorithms.DIJKSTRA_BI, weighting);
@@ -197,25 +197,55 @@ public class MiniGraphUIIndoor {
         };
 
 
-            String[] levels = ((GraphHopperStorage) graph).getProperties().get("levels").split(",");
-                levels[0]=levels[0].replace("[", "");
-                levels[levels.length-1]=levels[levels.length - 1].replace("]","");
-                levelPanel = new JPanel(new GridLayout(levels.length, 1));
-                for (String level : levels
-                        ) {
-                    level = level.trim();
-                    allLevels.add(level);
-                    JButton levelButton = new JButton(level);
-                    levelButton.setHorizontalAlignment(0);
-                    levelButton.addActionListener(new ButtonListener(levelButton));
-                    levelPanel.add(levelButton);
-                }
+        String[] levels = ((GraphHopperStorage) graph).getProperties().get("levels").split(",");
+        levels[0] = levels[0].replace("[", "");
+        levels[levels.length - 1] = levels[levels.length - 1].replace("]", "");
+        int [] intLevels = new int[levels.length];
+        for(int i=0;i< levels.length;i++){
+            if(!levels[i].contains(";"))
+                intLevels[i]=Integer.parseInt(levels[i].trim());
+        }
+        Arrays.sort(intLevels);
+        settings = new JPanel();
+        settings.setLayout(new BoxLayout(settings,BoxLayout.PAGE_AXIS));
+        settings.add(new JLabel("Level"));
+        for (int level : intLevels
+                ) {
+            JRadioButton levelButton = new JRadioButton(""+level);
+            if((""+level).equals(currentLevel))
+                levelButton.setSelected(true);
+            allLevelButtons.add(levelButton);
+            levelButton.setHorizontalAlignment(0);
+            levelButton.addActionListener(new LevelListener(levelButton));
+            settings.add(levelButton);
+        }
+
+        //add different indoor encoders
+        settings.add(new JSeparator());
+        settings.add(new JLabel("Encoder"));
+
+        JRadioButton stairsAndElevators = new JRadioButton("Stairs and elevators");
+        stairsAndElevators.setSelected(true);
+        stairsAndElevators.addActionListener(new EncoderListener(stairsAndElevators,"indoor",hopper));
+        settings.add(stairsAndElevators);
+        allEncoders.add(stairsAndElevators);
+
+        JRadioButton noStairs = new JRadioButton("No stairs");
+        noStairs.addActionListener(new EncoderListener(noStairs,"nostairs",hopper));
+        settings.add(noStairs);
+        allEncoders.add(noStairs);
+
+        JRadioButton noElevators = new JRadioButton("No elevators");
+        noElevators.addActionListener(new EncoderListener(noElevators,"noelevators",hopper));
+        settings.add(noElevators);
+        allEncoders.add(noElevators);
+
 
         mainPanel = new LayeredPanel();
 
         // TODO make it correct with bitset-skipping too
         final GHBitSet bitset = new GHTBitSet(graph.getNodes());
-        mainPanel.addLayer(wayLayer = new WayLayer(graph,bitset));
+        mainPanel.addLayer(wayLayer = new WayLayer(graph, bitset));
 
         mainPanel.addLayer(pathLayer = new DefaultMapLayer() {
             @Override
@@ -337,13 +367,13 @@ public class MiniGraphUIIndoor {
                 public void run() {
                     int frameHeight = 800;
                     int frameWidth = 1200;
-                    JFrame frame = new JFrame("GraphHopper UI - Small&Ugly ;)");
+                    JFrame frame = new JFrame("GraphHopper UI Indoor");
                     frame.setLayout(new BorderLayout());
                     frame.add(mainPanel, BorderLayout.CENTER);
                     frame.add(infoPanel, BorderLayout.NORTH);
-                    if (levelPanel != null) {
-                        frame.add(levelPanel, BorderLayout.EAST);
-                    }
+                    JPanel settingsPanel = new JPanel();
+                    settingsPanel.add(settings);
+                    frame.add(settingsPanel,BorderLayout.EAST);
 
                     infoPanel.setPreferredSize(new Dimension(300, 100));
 
@@ -368,19 +398,18 @@ public class MiniGraphUIIndoor {
                             if (!fromDone) {
                                 fromLat = mg.getLat(e.getY());
                                 fromLon = mg.getLon(e.getX());
-                                fromFloor = currentFloor;
+                                fromLevel = currentLevel;
                             } else {
                                 double toLat = mg.getLat(e.getY());
                                 double toLon = mg.getLon(e.getX());
-                                toFloor = currentFloor;
+                                toLevel = currentLevel;
                                 StopWatch sw = new StopWatch().start();
                                 logger.info("start searching from " + fromLat + "," + fromLon
                                         + " to " + toLat + "," + toLon);
                                 // get from and to node id
-                                //fromRes = index.findClosest(fromLat, fromLon, EdgeFilter.ALL_EDGES);
-                                //toRes = index.findClosest(toLat, toLon, EdgeFilter.ALL_EDGES);
-                                fromRes = index.findClosest(fromLat, fromLon, new EdgeFilterIndoor(fromFloor));
-                                toRes = index.findClosest(toLat, toLon, new EdgeFilterIndoor(toFloor));
+
+                                fromRes = index.findClosest(fromLat, fromLon, new EdgeFilterIndoor(fromLevel));
+                                toRes = index.findClosest(toLat, toLon, new EdgeFilterIndoor(toLevel));
                                 logger.info("found ids " + fromRes + " -> " + toRes + " in " + sw.stop().getSeconds() + "s");
 
                                 repaintPaths();
@@ -454,22 +483,63 @@ public class MiniGraphUIIndoor {
         pathLayer.repaint();
         wayLayer.repaint();
         mainPanel.repaint();
-        logger.info("roads painting took " + sw.stop().getSeconds() + " sec");
+        logger.info("way painting took " + sw.stop().getSeconds() + " sec");
     }
 
-    public class ButtonListener implements ActionListener{
-        private JButton floorButton;
+    public class LevelListener implements ActionListener {
+        private JToggleButton levelButton;
 
-        public ButtonListener(JButton floorButton){
-            this.floorButton = floorButton;
+        public LevelListener(JToggleButton levelButton) {
+            this.levelButton = levelButton;
         }
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(e.getSource() == floorButton){
-                currentFloor = floorButton.getText();
-                System.out.println(floorButton.getText());
+            if (e.getSource() == levelButton) {
+                currentLevel = levelButton.getText();
                 repaintRoads();
+            }
+        }
+    }
+
+    public class EncoderListener implements ActionListener{
+        private JToggleButton encoderButton;
+        private String encoderString;
+        private GraphHopperIndoor hopper;
+
+        EncoderListener(JToggleButton encoderButton,String encoderString,GraphHopperIndoor hopper) {
+            this.encoderButton = encoderButton;
+            this.encoderString = encoderString;
+            this.hopper = hopper;
+            final RoutingAlgorithmFactory tmpFactory = hopper.getAlgorithmFactory(map);
+            algoFactory = new RoutingAlgorithmFactory() {
+
+                @Override
+                public RoutingAlgorithm createAlgo(Graph g, AlgorithmOptions opts) {
+                    RoutingAlgorithm algo = tmpFactory.createAlgo(g, opts);
+                    if (algo instanceof AStarBidirection) {
+                        return new DebugAStarBi(g, opts.getWeighting(), opts.getTraversalMode(), mg).
+                                setApproximation(((AStarBidirection) algo).getApproximation());
+                    } else if (algo instanceof AStar) {
+                        return new DebugAStar(g, opts.getWeighting(), opts.getTraversalMode(), mg);
+                    } else if (algo instanceof DijkstraBidirectionRef) {
+                        return new DebugDijkstraBidirection(g, opts.getWeighting(), opts.getTraversalMode(), mg);
+                    } else if (algo instanceof Dijkstra) {
+                        return new DebugDijkstraSimple(g, opts.getWeighting(), opts.getTraversalMode(), mg);
+                    }
+                    return algo;
+                }
+            };
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (e.getSource() == encoderButton){
+                encoder = hopper.getEncodingManager().getEncoder(encoderString);
+                weighting = hopper.createWeighting(map, encoder, graph);
+                algoOpts = new AlgorithmOptions(Algorithms.ASTAR_BI, weighting);
+                repaintPaths();
+
             }
         }
     }
@@ -478,11 +548,11 @@ public class MiniGraphUIIndoor {
     public class WayLayer extends DefaultMapLayer {
 
         Random rand = new Random();
-        //String currentFloor;
+        //String currentLevel;
         Graph graph;
         GHBitSet bitset;
 
-        WayLayer(Graph graph, GHBitSet bitset){
+        WayLayer(Graph graph, GHBitSet bitset) {
             this.bitset = bitset;
             this.graph = graph;
         }
@@ -501,14 +571,12 @@ public class MiniGraphUIIndoor {
             AllEdgesIterator edge = graph.getAllEdges();
             while (edge.next()) {
                 float width = 2.8f;
-                if(edge instanceof EdgeIteratorIndoor){
+                if (edge instanceof EdgeIteratorIndoor) {
                     EdgeIteratorIndoor edgeIndoor = (EdgeIteratorIndoor) edge;
-                    if(!edgeIndoor.getFloor().equals(currentFloor)) {
+                    if (!edgeIndoor.getFloor().equals(currentLevel)) {
                         g2.setColor(Color.LIGHT_GRAY);
                         width = 2f;
-                        System.out.println(edgeIndoor.getFloor() + " - "+currentFloor);
-                    }
-                    else {
+                    } else {
                         g2.setColor(Color.GREEN);
                     }
                 }

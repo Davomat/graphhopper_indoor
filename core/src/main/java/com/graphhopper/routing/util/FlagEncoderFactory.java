@@ -34,6 +34,8 @@ public interface FlagEncoderFactory {
     final String MOTORCYCLE = "motorcycle";
     final String GENERIC = "generic";
     final String INDOOR = "indoor";
+    final String NOSTAIRS = "nostairs";
+    final String NOELEVATORS = "noelevators";
     final FlagEncoderFactory DEFAULT = new DefaultFlagEncoderFactory();
 
     FlagEncoder createFlagEncoder(String name, PMap configuration);

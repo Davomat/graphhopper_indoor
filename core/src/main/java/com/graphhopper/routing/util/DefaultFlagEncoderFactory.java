@@ -60,6 +60,12 @@ public class DefaultFlagEncoderFactory implements FlagEncoderFactory {
         if (name.equals(INDOOR))
             return new IndoorFlagEncoder(configuration);
 
+        if (name.equals(NOSTAIRS))
+            return new IndoorFlagEncoderNoStairs(configuration);
+
+        if(name.equals(NOELEVATORS))
+            return new IndoorFlagEncoderNoElevators(configuration);
+
         throw new IllegalArgumentException("entry in encoder list not supported " + name);
     }
 }
