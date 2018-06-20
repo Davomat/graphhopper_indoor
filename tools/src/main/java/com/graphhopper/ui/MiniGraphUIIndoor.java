@@ -34,6 +34,7 @@ import com.graphhopper.util.Parameters.Algorithms;
 import com.graphhopper.util.shapes.BBox;
 
 
+import com.sun.deploy.util.ArrayUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +50,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.Arrays;
+
 
 /**
  * A rough graphical user interface for visualizing the OSM graph. Mainly for debugging algorithms
@@ -206,6 +208,12 @@ public class MiniGraphUIIndoor {
                 intLevels[i]=Integer.parseInt(levels[i].trim());
         }
         Arrays.sort(intLevels);
+        for(int i=0;i<intLevels.length/2;i++){
+            int temp = intLevels[i];
+            intLevels[i]=intLevels[intLevels.length-1-i];
+            intLevels[intLevels.length-1-i]=temp;
+        }
+
         settings = new JPanel();
         settings.setLayout(new BoxLayout(settings,BoxLayout.PAGE_AXIS));
         settings.add(new JLabel("Level"));
