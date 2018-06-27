@@ -26,6 +26,7 @@ if (!host) {
     } else {
         host = location.protocol + '//' + location.hostname + ":" + location.port;
     }
+    console.log("Host: "+host);
 }
 
 var AutoComplete = require('./autocomplete.js');
@@ -49,6 +50,7 @@ var tileLayers = require('./config/tileLayers.js');
 var debug = false;
 var ghRequest = new GHRequest(host, ghenv.routing.api_key);
 var bounds = {};
+var currentLevel; 
 
 var metaVersionInfo;
 
@@ -91,6 +93,14 @@ $(document).ready(function (e) {
         e.preventDefault();
         mySubmit();
     });
+
+    $('#levels').change(function(e){
+        //change currentLevel
+        currentLevel = $('input[name=level]:checked', '#levels').val();
+        console.log(currentLevel);
+    });
+
+    
 
     var urlParams = urlTools.parseUrlWithHisto();
     $.when(ghRequest.fetchTranslationMap(urlParams.locale), ghRequest.getInfo())
@@ -304,7 +314,7 @@ function checkInput() {
     // console.log("## new checkInput");
     for (var i = 0; i < len; i++) {
         var div = $('#locationpoints > div.pointDiv').eq(i);
-        // console.log(div.length + ", index:" + i + ", len:" + len);
+        console.log("div:" + div);
         if (div.length === 0) {
             $('#locationpoints > div.pointAdd').before(translate.nanoTemplate(template, {id: i}));
             div = $('#locationpoints > div.pointDiv').eq(i);
