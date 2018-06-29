@@ -1,6 +1,6 @@
 global.d3 = require('d3');
 var Flatpickr = require('flatpickr');
-
+require('flatpickr/dist/l10n');
 var L = require('leaflet');
 require('leaflet-contextmenu');
 require('leaflet-loading');
@@ -19,6 +19,7 @@ console.log(ghenv.environment);
 
 var GHInput = require('./graphhopper/GHInput.js');
 var GHRequest = require('./graphhopper/GHRequest.js');
+
 var host = ghenv.routing.host;
 if (!host) {
     if (location.port === '') {
@@ -26,7 +27,6 @@ if (!host) {
     } else {
         host = location.protocol + '//' + location.hostname + ":" + location.port;
     }
-    console.log("Host: "+host);
 }
 
 var AutoComplete = require('./autocomplete.js');
@@ -50,7 +50,7 @@ var tileLayers = require('./config/tileLayers.js');
 var debug = false;
 var ghRequest = new GHRequest(host, ghenv.routing.api_key);
 var bounds = {};
-var currentLevel; 
+var currentLevel;
 
 var metaVersionInfo;
 
@@ -58,7 +58,7 @@ var metaVersionInfo;
 // http://paulirish.com/2009/log-a-lightweight-wrapper-for-consolelog/
 if (global.window) {
     window.log = function () {
-        log.history = log.history || [];   // store logs to an array for reference
+        log.history = log.history || []; // store logs to an array for reference
         log.history.push(arguments);
         if (this.console && debug) {
             console.log(Array.prototype.slice.call(arguments));
@@ -75,6 +75,11 @@ $(document).ready(function (e) {
     if (isProduction())
         $('#hosting').show();
 
+    currentLevel = $("input[name='level']:checked", '#levels').val();
+    if (!currentLevel) {
+        $("input[value='0']", '#levels').prop('checked', true);
+        currentLevel = "0";
+    }
     var History = window.History;
     if (History.enabled) {
         History.Adapter.bind(window, 'statechange', function () {
@@ -94,103 +99,127 @@ $(document).ready(function (e) {
         mySubmit();
     });
 
-    $('#levels').change(function(e){
+    $('#levels').click(function (e) {
         //change currentLevel
         currentLevel = $('input[name=level]:checked', '#levels').val();
         console.log(currentLevel);
     });
 
-    
+
 
     var urlParams = urlTools.parseUrlWithHisto();
     $.when(ghRequest.fetchTranslationMap(urlParams.locale), ghRequest.getInfo())
-            .then(function (arg1, arg2) {
-                // init translation retrieved from first call (fetchTranslationMap)
-                var translations = arg1[0];
-                autocomplete.setLocale(translations.locale);
-                ghRequest.setLocale(translations.locale);
-                translate.init(translations);
+        .then(function (arg1, arg2) {
+            // init translation retrieved from first call (fetchTranslationMap)
+            var translations = arg1[0];
+            autocomplete.setLocale(translations.locale);
+            ghRequest.setLocale(translations.locale);
+            translate.init(translations);
 
-                // init bounding box from getInfo result
-                var json = arg2[0];
-                var tmp = json.bbox;
-                bounds.initialized = true;
-                bounds.minLon = tmp[0];
-                bounds.minLat = tmp[1];
-                bounds.maxLon = tmp[2];
-                bounds.maxLat = tmp[3];
-                nominatim.setBounds(bounds);
-                var vehiclesDiv = $("#vehicles");
+            // init bounding box from getInfo result
+            var json = arg2[0];
+            var tmp = json.bbox;
+            bounds.initialized = true;
+            bounds.minLon = tmp[0];
+            bounds.minLat = tmp[1];
+            bounds.maxLon = tmp[2];
+            bounds.maxLat = tmp[3];
+            nominatim.setBounds(bounds);
+            var vehiclesDiv = $("#vehicles");
 
-                function createButton(vehicle, hide) {
-                    var button = $("<button class='vehicle-btn' title='" + translate.tr(vehicle) + "'/>");
-                    if (hide)
-                        button.hide();
+            function createButton(vehicle, hide) {
+                var button = $("<button class='vehicle-btn' title='" + translate.tr(vehicle) + "'/>");
+                if (hide)
+                    button.hide();
 
-                    button.attr('id', vehicle);
-                    button.html("<img src='img/" + vehicle + ".png' alt='" + translate.tr(vehicle) + "'></img>");
-                    button.click(function () {
-                        ghRequest.initVehicle(vehicle);
-                        resolveAll();
-                        routeLatLng(ghRequest);
-                    });
-                    return button;
-                }
+                button.attr('id', vehicle);
+                button.html("<img src='img/" + vehicle + ".png' alt='" + translate.tr(vehicle) + "'></img>");
+                button.click(function () {
+                    ghRequest.initVehicle(vehicle);
+                    resolveAll();
+                    routeLatLng(ghRequest);
+                });
+                return button;
+            }
 
-                if (json.features) {
-                    ghRequest.features = json.features;
+            if (json.features) {
+                ghRequest.features = json.features;
 
-                    // car, foot and bike should come first. mc comes last
-                    var prefer = {"car": 1, "foot": 2, "bike": 3, "motorcycle": 10000};
-                    var showAllVehicles = urlParams.vehicle && (!prefer[urlParams.vehicle] || prefer[urlParams.vehicle] > 3);
-                    var vehicles = vehicleTools.getSortedVehicleKeys(json.features, prefer);
-                    if (vehicles.length > 0)
-                        ghRequest.initVehicle(vehicles[0]);
-
-                    if (ghRequest.isPublicTransit())
-                        $(".time_input").show();
-
-                    var hiddenVehicles = [];
-                    for (var i in vehicles) {
-                        var btn = createButton(vehicles[i].toLowerCase(), !showAllVehicles && i > 2);
-                        vehiclesDiv.append(btn);
-
-                        if (i > 2)
-                            hiddenVehicles.push(btn);
-                    }
-
-                    if (!showAllVehicles && vehicles.length > 3) {
-                        var moreBtn = $("<a id='more-vehicle-btn'> ...</a>").click(function () {
-                            moreBtn.hide();
-                            for (var i in hiddenVehicles) {
-                                hiddenVehicles[i].show();
-                            }
-                        });
-                        vehiclesDiv.append($("<a class='vehicle-info-link' href='https://graphhopper.com/api/1/docs/supported-vehicle-profiles/'>?</a>"));
-                        vehiclesDiv.append(moreBtn);
-                    }
-                }
-                metaVersionInfo = messages.extractMetaVersionInfo(json);
-
-                mapLayer.initMap(bounds, setStartCoord, setIntermediateCoord, setEndCoord, urlParams.layer, urlParams.use_miles);
-
-                // execute query
-                initFromParams(urlParams, true);
-
-                checkInput();
-            }, function (err) {
-                console.log(err);
-                $('#error').html('GraphHopper API offline? <a href="http://graphhopper.com/maps">Refresh</a>' + '<br/>Status: ' + err.statusText + '<br/>' + host);
-
-                bounds = {
-                    "minLon": -180,
-                    "minLat": -90,
-                    "maxLon": 180,
-                    "maxLat": 90
+                // car, foot and bike should come first. mc comes last
+                var prefer = {
+                    "car": 1,
+                    "foot": 2,
+                    "bike": 3,
+                    "motorcycle": 10000
                 };
-                nominatim.setBounds(bounds);
-                mapLayer.initMap(bounds, setStartCoord, setIntermediateCoord, setEndCoord, urlParams.layer, urlParams.use_miles);
-            });
+                var showAllVehicles = urlParams.vehicle && (!prefer[urlParams.vehicle] || prefer[urlParams.vehicle] > 3);
+                var vehicles = vehicleTools.getSortedVehicleKeys(json.features, prefer);
+                if (vehicles.length > 0)
+                    ghRequest.initVehicle(vehicles[0]);
+
+                if (ghRequest.isPublicTransit())
+                    $(".time_input").show();
+
+                var hiddenVehicles = [];
+                for (var i in vehicles) {
+                    var btn = createButton(vehicles[i].toLowerCase(), !showAllVehicles && i > 2);
+                    vehiclesDiv.append(btn);
+
+                    if (i > 2)
+                        hiddenVehicles.push(btn);
+                }
+
+                if (!showAllVehicles && vehicles.length > 3) {
+                    var moreBtn = $("<a id='more-vehicle-btn'> ...</a>").click(function () {
+                        moreBtn.hide();
+                        for (var i in hiddenVehicles) {
+                            hiddenVehicles[i].show();
+                        }
+                    });
+                    vehiclesDiv.append($("<a class='vehicle-info-link' href='https://graphhopper.com/api/1/docs/supported-vehicle-profiles/'>?</a>"));
+                    vehiclesDiv.append(moreBtn);
+                }
+            }
+            metaVersionInfo = messages.extractMetaVersionInfo(json);
+
+            mapLayer.initMap(bounds, setStartCoord, setIntermediateCoord, setEndCoord, urlParams.layer, urlParams.use_miles);
+
+            // execute query
+            initFromParams(urlParams, true);
+
+            checkInput();
+        }, function (err) {
+            console.log(err);
+            $('#error').html('GraphHopper API offline? <a href="http://graphhopper.com/maps">Refresh</a>' + '<br/>Status: ' + err.statusText + '<br/>' + host);
+
+            bounds = {
+                "minLon": -180,
+                "minLat": -90,
+                "maxLon": 180,
+                "maxLat": 90
+            };
+            nominatim.setBounds(bounds);
+            mapLayer.initMap(bounds, setStartCoord, setIntermediateCoord, setEndCoord, urlParams.layer, urlParams.use_miles);
+        });
+
+    var language_code = urlParams.locale && urlParams.locale.split('-', 1)[0];
+    if (language_code != 'en') {
+        // A few language codes are different in GraphHopper and Flatpickr.
+        var flatpickr_locale;
+        switch (language_code) {
+            case 'ca': // Catalan
+                flatpickr_locale = 'cat';
+                break;
+            case 'el': // Greek
+                flatpickr_locale = 'gr';
+                break;
+            default:
+                flatpickr_locale = language_code;
+        }
+        if (Flatpickr.l10ns.hasOwnProperty(flatpickr_locale)) {
+            Flatpickr.localize(Flatpickr.l10ns[flatpickr_locale]);
+        }
+    }
 
     $(window).resize(function () {
         mapLayer.adjustMapSize();
@@ -230,7 +259,8 @@ function initFromParams(params, doQuery) {
 
     var flatpickr = new Flatpickr(document.getElementById("input_date_0"), {
         defaultDate: new Date(),
-        allowInput: true, /* somehow then does not sync!? */
+        allowInput: true,
+        /* somehow then does not sync!? */
         minuteIncrement: 15,
         time_24hr: true,
         enableTime: true
@@ -282,7 +312,9 @@ function resolveCoords(pointsAsStr, doQuery) {
     }
 }
 
-var FROM = 'from', TO = 'to';
+var FROM = 'from',
+    TO = 'to';
+
 function getToFrom(index) {
     if (index === 0)
         return FROM;
@@ -293,7 +325,7 @@ function getToFrom(index) {
 
 function checkInput() {
     var template = $('#pointTemplate').html(),
-            len = ghRequest.route.size();
+        len = ghRequest.route.size();
 
     // remove deleted points
     if ($('#locationpoints > div.pointDiv').length > len) {
@@ -314,17 +346,20 @@ function checkInput() {
     // console.log("## new checkInput");
     for (var i = 0; i < len; i++) {
         var div = $('#locationpoints > div.pointDiv').eq(i);
-        console.log("div:" + div);
+        // console.log(div.length + ", index:" + i + ", len:" + len);
+        //!!!!!
         if (div.length === 0) {
-            $('#locationpoints > div.pointAdd').before(translate.nanoTemplate(template, {id: i}));
+            $('#locationpoints > div.pointAdd').before(translate.nanoTemplate(template, {
+                id: i
+            }));
             div = $('#locationpoints > div.pointDiv').eq(i);
         }
 
         var toFrom = getToFrom(i);
         div.data("index", i);
         div.find(".pointFlag").attr("src",
-                (toFrom === FROM) ? 'img/marker-small-green.png' :
-                ((toFrom === TO) ? 'img/marker-small-red.png' : 'img/marker-small-blue.png'));
+            (toFrom === FROM) ? 'img/marker-small-green.png' :
+            ((toFrom === TO) ? 'img/marker-small-red.png' : 'img/marker-small-blue.png'));
         if (len > 2) {
             div.find(".pointDelete").click(deleteClickHandler).prop('disabled', false).removeClass('ui-state-disabled');
         } else {
@@ -346,14 +381,14 @@ function checkInput() {
 
 function setToStart(e) {
     var latlng = e.relatedTarget.getLatLng(),
-            index = ghRequest.route.getIndexByCoord(latlng);
+        index = ghRequest.route.getIndexByCoord(latlng);
     ghRequest.route.move(index, 0);
     routeIfAllResolved();
 }
 
 function setToEnd(e) {
     var latlng = e.relatedTarget.getLatLng(),
-            index = ghRequest.route.getIndexByCoord(latlng);
+        index = ghRequest.route.getIndexByCoord(latlng);
     ghRequest.route.move(index, -1);
     routeIfAllResolved();
 }
@@ -375,7 +410,7 @@ function setIntermediateCoord(e) {
         };
     });
     var index = routeManipulation.getIntermediatePointIndex(routeSegments, e.latlng);
-    ghRequest.route.add(e.latlng.wrap(), index);
+    ghRequest.route.add(e.latlng.lat + "," + e.latlng.lng  +"," + currentLevel, index);
     resolveIndex(index);
     routeIfAllResolved();
 }
@@ -410,8 +445,8 @@ function setFlag(coord, index) {
         marker._openPopup = marker.openPopup;
         marker.openPopup = function () {
             var latlng = this.getLatLng(),
-                    locCoord = ghRequest.route.getIndexFromCoord(latlng),
-                    content;
+                locCoord = ghRequest.route.getIndexFromCoord(latlng),
+                content;
             if (locCoord.resolvedList && locCoord.resolvedList[0] && locCoord.resolvedList[0].locationDetails) {
                 var address = locCoord.resolvedList[0].locationDetails;
                 content = format.formatAddress(address);
@@ -473,7 +508,7 @@ function resolveAll() {
         ret[i] = resolveIndex(i);
     }
 
-    if(ghRequest.isPublicTransit())
+    if (ghRequest.isPublicTransit())
         ghRequest.setEarliestDepartureTime(
             moment($("#input_date_0").val(), 'YYYY-MM-DD HH:mm').toISOString());
 
@@ -487,6 +522,8 @@ function flagAll() {
 }
 
 function routeLatLng(request, doQuery) {
+    var i;
+
     // do_zoom should not show up in the URL but in the request object to avoid zooming for history change
     var doZoom = request.do_zoom;
     request.do_zoom = true;
@@ -574,9 +611,21 @@ function routeLatLng(request, doQuery) {
         }
 
         // the routing layer uses the geojson properties.style for the style, see map.js
-        var defaultRouteStyle = {color: "#00cc33", "weight": 5, "opacity": 0.6};
-        var highlightRouteStyle = {color: "#00cc33", "weight": 6, "opacity": 0.8};
-        var alternativeRouteStye = {color: "darkgray", "weight": 6, "opacity": 0.8};
+        var defaultRouteStyle = {
+            color: "#00cc33",
+            "weight": 5,
+            "opacity": 0.6
+        };
+        var highlightRouteStyle = {
+            color: "#00cc33",
+            "weight": 6,
+            "opacity": 0.8
+        };
+        var alternativeRouteStye = {
+            color: "darkgray",
+            "weight": 6,
+            "opacity": 0.8
+        };
         var geoJsons = [];
         var firstHeader;
 
@@ -590,10 +639,10 @@ function routeLatLng(request, doQuery) {
             };
         };
 
-        if(json.paths.length > 0 && json.paths[0].points_order) {
+        if (json.paths.length > 0 && json.paths[0].points_order) {
             mapLayer.clearLayers();
             var po = json.paths[0].points_order;
-            for (var i = 0; i < po.length; i++) {
+            for (i = 0; i < po.length; i++) {
                 setFlag(ghRequest.route.getIndex(po[i]), i);
             }
         }
@@ -631,11 +680,11 @@ function routeLatLng(request, doQuery) {
 
             var tempDistance = translate.createDistanceString(path.distance, request.useMiles);
             var tempRouteInfo;
-            if(request.isPublicTransit()) {
+            if (request.isPublicTransit()) {
                 var tempArrTime = moment(ghRequest.getEarliestDepartureTime())
-                                        .add(path.time, 'milliseconds')
-                                        .format('LT');
-                if(path.transfers >= 0)
+                    .add(path.time, 'milliseconds')
+                    .format('LT');
+                if (path.transfers >= 0)
                     tempRouteInfo = translate.tr("pt_route_info", [tempArrTime, path.transfers, tempDistance]);
                 else
                     tempRouteInfo = translate.tr("pt_route_info_walking", [tempArrTime, tempDistance]);
@@ -659,12 +708,12 @@ function routeLatLng(request, doQuery) {
             buttons.append('|');
             buttons.append(miButton);
 
-            routeInfo.append(buttons);            
+            routeInfo.append(buttons);
 
             if (request.hasElevation()) {
                 routeInfo.append(translate.createEleInfoString(path.ascend, path.descend, request.useMiles));
             }
-            
+
             routeInfo.append($("<div style='clear:both'/>"));
             oneTab.append(routeInfo);
 
@@ -674,11 +723,11 @@ function routeLatLng(request, doQuery) {
             }
 
             var detailObj = path.details;
-            if(detailObj && request.api_params.debug) {
+            if (detailObj && request.api_params.debug) {
                 // detailKey, would be for example average_speed
                 for (var detailKey in detailObj) {
                     var pathDetailsArr = detailObj[detailKey];
-                    for (var i = 0; i < pathDetailsArr.length; i++) {
+                    for (i = 0; i < pathDetailsArr.length; i++) {
                         var pathDetailObj = pathDetailsArr[i];
                         var firstIndex = pathDetailObj[0];
                         var value = pathDetailObj[2];
@@ -688,7 +737,8 @@ function routeLatLng(request, doQuery) {
                                 iconUrl: './img/marker-small-blue.png',
                                 iconSize: [15, 15]
                             }),
-                            draggable: true
+                            draggable: true,
+                            autoPan: true
                         }).addTo(mapLayer.getRoutingLayer()).bindPopup(detailKey + ":" + value);
                     }
                 }
@@ -717,10 +767,10 @@ function routeLatLng(request, doQuery) {
 
 function mySubmit() {
     var fromStr,
-            toStr,
-            viaStr,
-            allStr = [],
-            inputOk = true;
+        toStr,
+        viaStr,
+        allStr = [],
+        inputOk = true;
     var location_points = $("#locationpoints > div.pointDiv > input.pointInput");
     var len = location_points.size;
     $.each(location_points, function (index) {

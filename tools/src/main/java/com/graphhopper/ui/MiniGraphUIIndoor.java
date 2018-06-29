@@ -32,9 +32,9 @@ import com.graphhopper.storage.index.QueryResult;
 import com.graphhopper.util.*;
 import com.graphhopper.util.Parameters.Algorithms;
 import com.graphhopper.util.shapes.BBox;
+import com.graphhopper.routing.util.EdgeFilterIndoor;
 
 
-import com.sun.deploy.util.ArrayUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

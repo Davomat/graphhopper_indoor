@@ -25,28 +25,33 @@ GHInput.prototype.isResolved = function () {
 GHInput.prototype.setCoord = function (lat, lng) {
     this.lat = round(lat);
     this.lng = round(lng);
-    this.input = this.toString();
+};
+
+GHInput.prototype.setLevel = function (level){
+    this.level = level;
 };
 
 GHInput.prototype.setUnresolved = function () {
     this.lat = undefined;
     this.lng = undefined;
+    this.level = undefined;
 };
 
 GHInput.prototype.set = function (strOrObject) {
     // either text or coordinates or object
-    this.input = strOrObject;
+    //this.input = strOrObject;
     // reset to unresolved
 
 
     if (GHInput.isObject(strOrObject)) {
         this.setCoord(strOrObject.lat, strOrObject.lng);
+        this.setLevel(strOrObject.level);
     } else if (GHInput.isString(strOrObject)) {
-        var index = strOrObject.indexOf(",");
-        if (index >= 0) {
-            this.lat = round(parseFloat(strOrObject.substr(0, index)));
-            this.lng = round(parseFloat(strOrObject.substr(index + 1)));
-
+        var pointComponents = strOrObject.split(",");
+        if (pointComponents.length === 3) {
+            this.lat = round(parseFloat(pointComponents[0]));
+            this.lng = round(parseFloat(pointComponents[1]));
+            this.level = pointComponents[2];
             if (this.isResolved()) {
                 this.input = this.toString();
             } else {
@@ -56,6 +61,7 @@ GHInput.prototype.set = function (strOrObject) {
             this.setUnresolved();
         }
     }
+    this.input = this.toString();
 };
 
 GHInput.prototype.toString = function () {
