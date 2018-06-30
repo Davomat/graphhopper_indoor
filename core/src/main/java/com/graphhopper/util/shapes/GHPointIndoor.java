@@ -1,9 +1,9 @@
 package com.graphhopper.util.shapes;
 
 public class GHPointIndoor extends GHPoint {
-    public double lat = Double.NaN;
-    public double lon = Double.NaN;
-    public String level = null;
+    public double lat;
+    public double lon;
+    public String level;
 
     public GHPointIndoor(double lat, double lon, String level) {
         super(lat,lon);
@@ -51,6 +51,6 @@ public class GHPointIndoor extends GHPoint {
 
     @Override
     public String toString() {
-        return super.toString()+this.level;
+        return super.toString()+","+this.level;
     }
 }

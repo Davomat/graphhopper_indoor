@@ -1,11 +1,11 @@
 package com.graphhopper;
-
+import com.graphhopper.util.shapes.GHPoint;
 import com.graphhopper.util.shapes.GHPointIndoor;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class GHRequestIndoor {
+public class GHRequestIndoor extends GHRequest {
     private final List<GHPointIndoor> points;
     private List<String> pointHints = new ArrayList<>();
     private boolean possibleToAdd = false;
@@ -72,10 +72,8 @@ public class GHRequestIndoor {
         return this;
     }
 
-    public List<GHPointIndoor> getPoints() {
+    public List<GHPointIndoor> getIndoorPoints() {
         return points;
     }
-
-
 
 }

@@ -19,6 +19,7 @@ console.log(ghenv.environment);
 
 var GHInput = require('./graphhopper/GHInput.js');
 var GHRequest = require('./graphhopper/GHRequest.js');
+var tools = require('./graphhopper/tools.js');
 
 var host = ghenv.routing.host;
 if (!host) {
@@ -102,7 +103,6 @@ $(document).ready(function (e) {
     $('#levels').click(function (e) {
         //change currentLevel
         currentLevel = $('input[name=level]:checked', '#levels').val();
-        console.log(currentLevel);
     });
 
 
@@ -350,7 +350,7 @@ function checkInput() {
         //!!!!!
         if (div.length === 0) {
             $('#locationpoints > div.pointAdd').before(translate.nanoTemplate(template, {
-                id: i
+                id: i,level: currentLevel
             }));
             div = $('#locationpoints > div.pointDiv').eq(i);
         }
@@ -394,7 +394,7 @@ function setToEnd(e) {
 }
 
 function setStartCoord(e) {
-    ghRequest.route.set(e.latlng.wrap(), 0);
+    ghRequest.route.set(tools.indoorPoint(e.latlng.wrap(),currentLevel),0);
     resolveFrom();
     routeIfAllResolved();
 }
@@ -410,7 +410,7 @@ function setIntermediateCoord(e) {
         };
     });
     var index = routeManipulation.getIntermediatePointIndex(routeSegments, e.latlng);
-    ghRequest.route.add(e.latlng.lat + "," + e.latlng.lng  +"," + currentLevel, index);
+    ghRequest.route.add(tools.indoorPoint(e.latlng.wrap(),currentLevel), index);
     resolveIndex(index);
     routeIfAllResolved();
 }
@@ -424,7 +424,7 @@ function deleteCoord(e) {
 
 function setEndCoord(e) {
     var index = ghRequest.route.size() - 1;
-    ghRequest.route.set(e.latlng.wrap(), index);
+    ghRequest.route.set(tools.indoorPoint(e.latlng.wrap(),currentLevel), index);
     resolveTo();
     routeIfAllResolved();
 }
@@ -776,18 +776,21 @@ function mySubmit() {
     $.each(location_points, function (index) {
         if (index === 0) {
             fromStr = $(this).val();
+            console.log("fromStr: "+fromStr)
             if (fromStr !== translate.tr("from_hint") && fromStr !== "")
                 allStr.push(fromStr);
             else
                 inputOk = false;
         } else if (index === (len - 1)) {
             toStr = $(this).val();
+            console.log("toStr: "+toStr);
             if (toStr !== translate.tr("to_hint") && toStr !== "")
                 allStr.push(toStr);
             else
                 inputOk = false;
         } else {
             viaStr = $(this).val();
+            console.log("viaStr: "+viaStr);
             if (viaStr !== translate.tr("via_hint") && viaStr !== "")
                 allStr.push(viaStr);
             else
@@ -810,7 +813,7 @@ function mySubmit() {
         });
         return;
     }
-    // route!
+    // route!!!
     if (inputOk)
         resolveCoords(allStr);
 }

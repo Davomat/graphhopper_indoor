@@ -42852,7 +42852,7 @@ GHInput.isString = function (value) {
 };
 
 GHInput.prototype.isResolved = function () {
-    return !isNaN(this.lat) && !isNaN(this.lng);
+    return !isNaN(this.lat) && !isNaN(this.lng) && this.level!==undefined;
 };
 
 GHInput.prototype.setCoord = function (lat, lng) {
@@ -42871,35 +42871,32 @@ GHInput.prototype.setUnresolved = function () {
 };
 
 GHInput.prototype.set = function (strOrObject) {
-    // either text or coordinates or object
-    //this.input = strOrObject;
-    // reset to unresolved
-
-
+   
     if (GHInput.isObject(strOrObject)) {
         this.setCoord(strOrObject.lat, strOrObject.lng);
         this.setLevel(strOrObject.level);
+        console.log(this);
     } else if (GHInput.isString(strOrObject)) {
         var pointComponents = strOrObject.split(",");
         if (pointComponents.length === 3) {
             this.lat = round(parseFloat(pointComponents[0]));
             this.lng = round(parseFloat(pointComponents[1]));
             this.level = pointComponents[2];
-            if (this.isResolved()) {
-                this.input = this.toString();
-            } else {
-                this.setUnresolved();
-            }
+            
         } else {
             this.setUnresolved();
         }
     }
-    this.input = this.toString();
-};
+    if (this.isResolved()) {
+        this.input = this.toString();
+    } else {
+        this.setUnresolved();
+    }
+}
 
 GHInput.prototype.toString = function () {
     if (this.lat !== undefined && this.lng !== undefined)
-        return this.lat + "," + this.lng;
+        return this.lat + "," + this.lng +","+this.level;
     return undefined;
 };
 
@@ -43091,6 +43088,7 @@ GHRequest.prototype.createPointParams = function (useRawInput) {
 
     for (i = 0, l = this.route.size(); i < l; i++) {
         point = this.route.getIndex(i);
+        console.log("point in createPointParams: "+point);
         if (i > 0)
             str += "&";
         if (typeof point.input == 'undefined')
@@ -43507,8 +43505,12 @@ var decodePath = function (encoded, is3D) {
     return array;
 };
 
-module.exports.decodePath = decodePath;
+var indoorPoint = function(latlng,level){
+    return {"lat": latlng.lat, "lng":latlng.lng,"level": level}
+}
 
+module.exports.decodePath = decodePath;
+module.exports.indoorPoint = indoorPoint;
 },{}],17:[function(require,module,exports){
 var translate = require('./translate.js');
 var messages = require('./messages.js');
@@ -44557,6 +44559,7 @@ console.log(ghenv.environment);
 
 var GHInput = require('./graphhopper/GHInput.js');
 var GHRequest = require('./graphhopper/GHRequest.js');
+var tools = require('./graphhopper/tools.js');
 
 var host = ghenv.routing.host;
 if (!host) {
@@ -44640,7 +44643,6 @@ $(document).ready(function (e) {
     $('#levels').click(function (e) {
         //change currentLevel
         currentLevel = $('input[name=level]:checked', '#levels').val();
-        console.log(currentLevel);
     });
 
 
@@ -44794,7 +44796,7 @@ $(document).ready(function (e) {
 
 function initFromParams(params, doQuery) {
     ghRequest.init(params);
-
+    console.log("Params: "+params);
     var flatpickr = new Flatpickr(document.getElementById("input_date_0"), {
         defaultDate: new Date(),
         allowInput: true,
@@ -44832,6 +44834,7 @@ function initFromParams(params, doQuery) {
 function resolveCoords(pointsAsStr, doQuery) {
     for (var i = 0, l = pointsAsStr.length; i < l; i++) {
         var pointStr = pointsAsStr[i];
+        console.log("pointsStr: "+pointStr);
         var coords = ghRequest.route.getIndex(i);
         if (!coords || pointStr !== coords.input || !coords.isResolved())
             ghRequest.route.set(pointStr, i, true);
@@ -44888,7 +44891,7 @@ function checkInput() {
         //!!!!!
         if (div.length === 0) {
             $('#locationpoints > div.pointAdd').before(translate.nanoTemplate(template, {
-                id: i
+                id: i,level: currentLevel
             }));
             div = $('#locationpoints > div.pointDiv').eq(i);
         }
@@ -44932,7 +44935,7 @@ function setToEnd(e) {
 }
 
 function setStartCoord(e) {
-    ghRequest.route.set(e.latlng.wrap(), 0);
+    ghRequest.route.set(tools.indoorPoint(e.latlng.wrap(),currentLevel),0);
     resolveFrom();
     routeIfAllResolved();
 }
@@ -44948,7 +44951,7 @@ function setIntermediateCoord(e) {
         };
     });
     var index = routeManipulation.getIntermediatePointIndex(routeSegments, e.latlng);
-    ghRequest.route.add(e.latlng.lat + "," + e.latlng.lng  +"," + currentLevel, index);
+    ghRequest.route.add(tools.indoorPoint(e.latlng.wrap(),currentLevel), index);
     resolveIndex(index);
     routeIfAllResolved();
 }
@@ -44962,7 +44965,7 @@ function deleteCoord(e) {
 
 function setEndCoord(e) {
     var index = ghRequest.route.size() - 1;
-    ghRequest.route.set(e.latlng.wrap(), index);
+    ghRequest.route.set(tools.indoorPoint(e.latlng.wrap(),currentLevel), index);
     resolveTo();
     routeIfAllResolved();
 }
@@ -45314,18 +45317,21 @@ function mySubmit() {
     $.each(location_points, function (index) {
         if (index === 0) {
             fromStr = $(this).val();
+            console.log("fromStr: "+fromStr)
             if (fromStr !== translate.tr("from_hint") && fromStr !== "")
                 allStr.push(fromStr);
             else
                 inputOk = false;
         } else if (index === (len - 1)) {
             toStr = $(this).val();
+            console.log("toStr: "+toStr);
             if (toStr !== translate.tr("to_hint") && toStr !== "")
                 allStr.push(toStr);
             else
                 inputOk = false;
         } else {
             viaStr = $(this).val();
+            console.log("viaStr: "+viaStr);
             if (viaStr !== translate.tr("via_hint") && viaStr !== "")
                 allStr.push(viaStr);
             else
@@ -45348,7 +45354,7 @@ function mySubmit() {
         });
         return;
     }
-    // route!
+    // route!!!
     if (inputOk)
         resolveCoords(allStr);
 }
@@ -45359,7 +45365,7 @@ function isProduction() {
 
 module.exports.setFlag = setFlag;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./autocomplete.js":9,"./config/options.js":10,"./config/tileLayers.js":11,"./gpxexport.js":12,"./graphhopper/GHInput.js":13,"./graphhopper/GHRequest.js":14,"./instructions.js":17,"./lib/jquery-ui-custom-1.12.0.min.js":18,"./lib/jquery.autocomplete.js":19,"./lib/jquery.history.js":20,"./lib/leaflet.elevation-0.0.4.min.js":21,"./lib/leaflet_numbered_markers.js":22,"./map.js":24,"./messages.js":25,"./nominatim.js":26,"./routeManipulation.js":27,"./tools/format.js":28,"./tools/url.js":30,"./tools/vehicle.js":31,"./translate.js":32,"d3":1,"flatpickr":2,"flatpickr/dist/l10n":3,"jquery":4,"leaflet":7,"leaflet-contextmenu":5,"leaflet-loading":6,"moment":8}],24:[function(require,module,exports){
+},{"./autocomplete.js":9,"./config/options.js":10,"./config/tileLayers.js":11,"./gpxexport.js":12,"./graphhopper/GHInput.js":13,"./graphhopper/GHRequest.js":14,"./graphhopper/tools.js":16,"./instructions.js":17,"./lib/jquery-ui-custom-1.12.0.min.js":18,"./lib/jquery.autocomplete.js":19,"./lib/jquery.history.js":20,"./lib/leaflet.elevation-0.0.4.min.js":21,"./lib/leaflet_numbered_markers.js":22,"./map.js":24,"./messages.js":25,"./nominatim.js":26,"./routeManipulation.js":27,"./tools/format.js":28,"./tools/url.js":30,"./tools/vehicle.js":31,"./translate.js":32,"d3":1,"flatpickr":2,"flatpickr/dist/l10n":3,"jquery":4,"leaflet":7,"leaflet-contextmenu":5,"leaflet-loading":6,"moment":8}],24:[function(require,module,exports){
 var mainTemplate = require('./main-template.js');
 var tileLayers = require('./config/tileLayers.js');
 var translate = require('./translate.js');

@@ -50,4 +50,9 @@ var decodePath = function (encoded, is3D) {
     return array;
 };
 
+var indoorPoint = function(latlng,level){
+    return {"lat": latlng.lat, "lng":latlng.lng,"level": level}
+}
+
 module.exports.decodePath = decodePath;
+module.exports.indoorPoint = indoorPoint;
