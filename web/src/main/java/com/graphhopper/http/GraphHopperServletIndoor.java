@@ -4,6 +4,7 @@ import com.graphhopper.GHRequestIndoor;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.PathWrapper;
+import com.graphhopper.reader.osm.GraphHopperIndoor;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.util.StopWatch;
@@ -31,7 +32,7 @@ import static com.graphhopper.util.Parameters.Routing.*;
 import static com.graphhopper.util.Parameters.Routing.WAY_POINT_MAX_DISTANCE;
 import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 
-public class GraphHopperServletIndoor extends GHBaseServletIndoor {
+public class GraphHopperServletIndoor extends GHBaseServlet {
     @Inject
     private GraphHopperAPI graphHopper;
     @Inject
@@ -91,19 +92,8 @@ public class GraphHopperServletIndoor extends GHBaseServletIndoor {
 
                 FlagEncoder algoVehicle = encodingManager.getEncoder(vehicleStr);
                 GHRequestIndoor request;
-                if (favoredHeadings.size() > 0) {
-                    // if only one favored heading is specified take as start heading
-                    if (favoredHeadings.size() == 1) {
-                        List<Double> paddedHeadings = new ArrayList<Double>(Collections.nCopies(requestPoints.size(),
-                                Double.NaN));
-                        paddedHeadings.set(0, favoredHeadings.get(0));
-                        request = new GHRequestIndoor(requestPoints, paddedHeadings);
-                    } else {
-                        request = new GHRequestIndoor(requestPoints, favoredHeadings);
-                    }
-                } else {
-                    request = new GHRequestIndoor(requestPoints);
-                }
+                request = new GHRequestIndoor(requestPoints);
+
 
                 initHints(request.getHints(), httpReq.getParameterMap());
                 request.setVehicle(algoVehicle.toString()).
@@ -117,7 +107,7 @@ public class GraphHopperServletIndoor extends GHBaseServletIndoor {
                         put(INSTRUCTIONS, enableInstructions).
                         put(WAY_POINT_MAX_DISTANCE, minPathPrecision);
 
-                ghRsp = graphHopper.route(request);
+                ghRsp = ((GraphHopperIndoor)graphHopper).route(request);
             } catch (IllegalArgumentException ex) {
                 ghRsp.addError(ex);
             }
