@@ -113,10 +113,5 @@ public class OSMReaderIndoor extends OSMReader {
     }
 
 
-    @Override
-    void processWay(ReaderWay way) {
-        super.processWay(way);
-    }
-
 
 }

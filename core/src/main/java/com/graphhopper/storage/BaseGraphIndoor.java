@@ -10,6 +10,7 @@ import java.util.HashSet;
 
 public class BaseGraphIndoor extends BaseGraph {
     final FloorIndex floorIndex;
+    protected int N_LEVEL;
     int E_FLOOR;
     final EncodingManager encodingManager;
     private final InternalGraphEventListener listener;

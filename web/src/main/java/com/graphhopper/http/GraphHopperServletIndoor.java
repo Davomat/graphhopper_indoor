@@ -9,6 +9,8 @@ import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.util.StopWatch;
 import com.graphhopper.util.shapes.GHPointIndoor;
+import com.graphhopper.util.shapes.GHPoint;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -44,7 +46,7 @@ public class GraphHopperServletIndoor extends GHBaseServlet {
     private boolean hasElevation;
 
     public void doGet(HttpServletRequest httpReq, HttpServletResponse httpRes) throws ServletException, IOException {
-        List<GHPointIndoor> requestPoints = getPoints(httpReq, "point");
+        List<GHPoint> requestPoints = getPoints(httpReq, "point");
         GHResponse ghRsp = new GHResponse();
 
         double minPathPrecision = getDoubleParam(httpReq, WAY_POINT_MAX_DISTANCE, 1d);
@@ -107,7 +109,7 @@ public class GraphHopperServletIndoor extends GHBaseServlet {
                         put(INSTRUCTIONS, enableInstructions).
                         put(WAY_POINT_MAX_DISTANCE, minPathPrecision);
 
-                ghRsp = ((GraphHopperIndoor)graphHopper).route(request);
+                ghRsp = graphHopper.route(request);
             } catch (IllegalArgumentException ex) {
                 ghRsp.addError(ex);
             }
@@ -219,9 +221,9 @@ public class GraphHopperServletIndoor extends GHBaseServlet {
         }
     }
 
-    protected List<GHPointIndoor> getPoints(HttpServletRequest req, String key) {
+    protected List<GHPoint> getPoints(HttpServletRequest req, String key) {
         String[] pointsAsStr = getParams(req, key);
-        final List<GHPointIndoor> infoPoints = new ArrayList<GHPointIndoor>(pointsAsStr.length);
+        final List<GHPoint> infoPoints = new ArrayList<>(pointsAsStr.length);
         for (String str : pointsAsStr) {
             String[] fromStrs = str.split(",");
             if (fromStrs.length == 3) {

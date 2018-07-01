@@ -37,6 +37,7 @@ import com.graphhopper.util.*;
 import com.graphhopper.util.exceptions.PointOutOfBoundsException;
 import com.graphhopper.util.shapes.BBox;
 import com.graphhopper.util.shapes.GHPointIndoor;
+import com.graphhopper.util.shapes.GHPoint;
 
 import java.util.Collections;
 import java.util.List;
@@ -120,7 +121,7 @@ public class GraphHopperIndoor extends GraphHopper {
             if (algoStr.isEmpty())
                 algoStr = super.getCHFactoryDecorator().isEnabled() && !disableCH ? DIJKSTRA_BI : ASTAR_BI;
 
-            List<GHPointIndoor> points = request.getIndoorPoints();
+            List<GHPoint> points = request.getPoints();
             // TODO Maybe we should think about a isRequestValid method that checks all that stuff that we could do to fail fast
             // For example see #734
             checkIfPointsAreInBounds(points);
@@ -133,7 +134,7 @@ public class GraphHopperIndoor extends GraphHopper {
             Translation tr = super.getTranslationMap().getWithFallBack(locale);
             for (int i = 0; i < maxRetries; i++) {
                 StopWatch sw = new StopWatch().start();
-                List<QueryResult> qResults = routingTemplate.lookupIndoor(points, encoder);
+                List<QueryResult> qResults = routingTemplate.lookup(points, encoder);
                 ghRsp.addDebugInfo("idLookup:" + sw.stop().getSeconds() + "s");
                 if (ghRsp.hasErrors())
                     return Collections.emptyList();
@@ -209,10 +210,10 @@ public class GraphHopperIndoor extends GraphHopper {
         }
     }
 
-    private void checkIfPointsAreInBounds(List<GHPointIndoor> points) {
+    private void checkIfPointsAreInBounds(List<GHPoint> points) {
         BBox bounds = getGraphHopperStorage().getBounds();
         for (int i = 0; i < points.size(); i++) {
-            GHPointIndoor point = points.get(i);
+            GHPoint point = points.get(i);
             if (!bounds.contains(point.getLat(), point.getLon())) {
                 throw new PointOutOfBoundsException("Point " + i + " is out of bounds: " + point, i);
             }
