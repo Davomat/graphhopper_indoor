@@ -81,7 +81,7 @@ public final class GraphHopperStorage implements GraphStorage, Graph {
         };
 
         if(encodingManager.supports("indoor")||encodingManager.supports("nostairs")||encodingManager.supports("noelevators"))
-            this.baseGraph = new BaseGraphIndoor(dir, encodingManager, withElevation, listener, extendedStorage);
+            this.baseGraph = new BaseGraphIndoor(dir, encodingManager, withElevation, listener, new IndoorExtension());
         else
             this.baseGraph = new BaseGraph(dir, encodingManager, withElevation, listener, extendedStorage);
         for (Weighting w : chWeightings) {

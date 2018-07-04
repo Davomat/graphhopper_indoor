@@ -4,18 +4,19 @@ package com.graphhopper.storage;
 import com.graphhopper.routing.util.*;
 import com.graphhopper.search.FloorIndex;
 import com.graphhopper.util.EdgeExplorer;
+import com.graphhopper.util.Helper;
+import com.graphhopper.util.PointList;
+import com.graphhopper.util.PointListIndoor;
 
 import java.util.HashSet;
 
 
 public class BaseGraphIndoor extends BaseGraph {
     final FloorIndex floorIndex;
-    protected int N_LEVEL;
     int E_FLOOR;
     final EncodingManager encodingManager;
     private final InternalGraphEventListener listener;
     private final Directory dir;
-
 
 
     public BaseGraphIndoor(Directory dir, final EncodingManager encodingManager, boolean withElevation,
@@ -32,8 +33,7 @@ public class BaseGraphIndoor extends BaseGraph {
     private void setFloor(long edgePointer, String floor) {
         int floorIndexRef = (int) floorIndex.put(floor.trim());
         if (floorIndexRef < 0)
-            throw new IllegalStateException("Too many floorss are stored, currently limited to int pointer");
-
+            throw new IllegalStateException("Too many floors are stored, currently limited to int pointer");
         edges.setInt(edgePointer + E_FLOOR, floorIndexRef);
     }
 
@@ -54,8 +54,11 @@ public class BaseGraphIndoor extends BaseGraph {
         @Override
         public EdgeIteratorIndoor setFloor(String floor) {
             baseGraph.setFloor(edgePointer, floor);
+            ((IndoorExtension)baseGraph.getExtension()).setLevel(baseNode,floor);
             return this;
         }
+
+
     }
 
     @Override
@@ -127,6 +130,8 @@ public class BaseGraphIndoor extends BaseGraph {
         @Override
         public EdgeIteratorIndoor setFloor(String floor) {
             baseGraph.setFloor(edgePointer, floor);
+            ((IndoorExtension)baseGraph.getExtension()).setLevel(baseNode,floor);
+            ((IndoorExtension)baseGraph.getExtension()).setLevel(adjNode,floor);
             return this;
         }
     }
@@ -157,6 +162,34 @@ public class BaseGraphIndoor extends BaseGraph {
     public AllEdgesIterator getAllEdges() {
         return new AllEdgeIteratorIndoor(this);
     }
+
+    private void setWayGeometry_(PointList pillarNodes, long edgePointer, boolean reverse) {
+//        if (pillarNodes != null && !pillarNodes.isEmpty()) {
+//            if (pillarNodes.getDimension() != nodeAccess.getDimension())
+//                throw new IllegalArgumentException("Cannot use pointlist which is " + pillarNodes.getDimension()
+//                        + "D for graph which is " + nodeAccess.getDimension() + "D");
+//
+//            long existingGeoRef = Helper.toUnsignedLong(edges.getInt(edgePointer + E_GEO));
+//
+//            int len = pillarNodes.getSize();
+//            int dim = nodeAccess.getDimension();
+//            if (existingGeoRef > 0) {
+//                final int count = wayGeometry.getInt(existingGeoRef * 4L);
+//                if (len <= count) {
+//                    setWayGeometryAtGeoRef(pillarNodes, edgePointer, reverse, existingGeoRef);
+//                    return;
+//                }
+//            }
+//
+//            long nextGeoRef = nextGeoRef(len * dim);
+//            setWayGeometryAtGeoRef(pillarNodes, edgePointer, reverse, nextGeoRef);
+//        } else {
+//            edges.setInt(edgePointer + E_GEO, 0);
+//        }
+        System.out.println("Na immerhin");
+    }
+
+
 
 
 }

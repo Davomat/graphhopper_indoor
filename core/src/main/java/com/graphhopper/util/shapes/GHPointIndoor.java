@@ -1,12 +1,12 @@
 package com.graphhopper.util.shapes;
 
-public class GHPointIndoor extends GHPoint {
+public class GHPointIndoor extends GHPoint3D {
     public double lat;
     public double lon;
     public String level;
 
     public GHPointIndoor(double lat, double lon, String level) {
-        super(lat,lon);
+        super(lat,lon,Double.NaN);
         this.lat = lat;
         this.lon = lon;
         this.level = level;

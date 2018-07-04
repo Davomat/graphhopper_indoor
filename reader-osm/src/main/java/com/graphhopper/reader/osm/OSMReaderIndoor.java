@@ -19,13 +19,20 @@ package com.graphhopper.reader.osm;
 
 import com.carrotsearch.hppc.*;
 import com.graphhopper.reader.*;
+import com.graphhopper.routing.util.AllEdgesIterator;
+import com.graphhopper.routing.util.EdgeIteratorIndoor;
 import com.graphhopper.storage.*;
 import com.graphhopper.util.*;
+import com.graphhopper.util.shapes.GHPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.*;
 import java.io.File;
+import java.io.IOException;
+import java.rmi.UnexpectedException;
 import java.util.*;
+import java.util.List;
 
 import static com.graphhopper.util.Helper.nf;
 
@@ -40,15 +47,18 @@ public class OSMReaderIndoor extends OSMReader {
     private Set<String> allLevels = new HashSet<String>();
     private Date osmDataDate;
     private GraphHopperStorage ghStorage;
+    private IndoorExtension indoorExtension;
+    private NodeAccess nodeAccess;
+    private final DistanceCalc distCalc = Helper.DIST_EARTH;
 
 
 
     public OSMReaderIndoor(GraphHopperStorage ghStorage) {
         super(ghStorage);
         this.ghStorage = ghStorage;
+        indoorExtension = (IndoorExtension)ghStorage.getExtension();
+        this.nodeAccess = ghStorage.getNodeAccess();
     }
-
-
 
 
 
@@ -68,25 +78,22 @@ public class OSMReaderIndoor extends OSMReader {
                     boolean valid = filterWay(way);
                     if (valid) {
                         LongIndexedContainer wayNodes = way.getNodes();
-                        int s = wayNodes.size();
-                        for (int index = 0; index < s; index++) {
-                            prepareHighwayNode(wayNodes.get(index));
+                        String level = way.getTag("level","");
+                        if (!level.isEmpty()) {
+                            if (!level.contains(";")) {
+                                allLevels.add(level);
+                                int s = wayNodes.size();
+                                for (int index = 0; index < s; index++) {
+                                    prepareHighwayNode(wayNodes.get(index));
+                                }
+                            }
+
                         }
+
 
                         if (++tmpWayCounter % 10_000_000 == 0) {
                             this.LOGGER.info(nf(tmpWayCounter) + " (preprocess), osmIdMap:" + nf(getNodeMap().getSize()) + " ("
                                     + getNodeMap().getMemoryUsage() + "MB) " + Helper.getMemInfo());
-                        }
-                        String level = way.getTag("level");
-                        if (level != null) {
-                            if (level.contains(";")) {
-                                String[] levels = level.split(";");
-                                for (String level2 : levels)
-                                    allLevels.add(level2);
-                            }
-                            else
-                                allLevels.add(level);
-
                         }
 
 
@@ -114,4 +121,27 @@ public class OSMReaderIndoor extends OSMReader {
 
 
 
+
+    @Override
+    void processWay(ReaderWay way) {
+        super.processWay(way);
+        String level = way.getTag("level");
+        if (level.contains(";")){
+            LongArrayList osmNodeIds = way.getNodes();
+            if(osmNodeIds.size()==2){
+                int first = getNodeMap().get(osmNodeIds.get(0));
+                int last = getNodeMap().get(osmNodeIds.get(osmNodeIds.size() - 1));
+                double firstLat = getTmpLatitude(first), firstLon = getTmpLongitude(first);
+                double lastLat = getTmpLatitude(last), lastLon = getTmpLongitude(last);
+                if (!Double.isNaN(firstLat) && !Double.isNaN(firstLon) && !Double.isNaN(lastLat) && !Double.isNaN(lastLon)) {
+                    double estimatedDist = distCalc.calcDist(firstLat, firstLon, lastLat, lastLon);
+                    // Add artificial tag for the estimated distance and center
+                    way.setTag("estimated_distance", 100);
+                    way.setTag("estimated_center", new GHPoint((firstLat + lastLat) / 2, (firstLon + lastLon) / 2));
+                }
+            }
+            else
+                throw new UnsupportedOperationException("way consisting of two different levels must not have more than two nodes");
+        }
+    }
 }

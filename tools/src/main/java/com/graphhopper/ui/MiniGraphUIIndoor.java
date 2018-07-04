@@ -19,6 +19,7 @@ package com.graphhopper.ui;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.graphhopper.coll.GHBitSet;
+import com.graphhopper.coll.GHIntArrayList;
 import com.graphhopper.coll.GHTBitSet;
 import com.graphhopper.reader.osm.GraphHopperIndoor;
 import com.graphhopper.routing.*;
@@ -46,9 +47,8 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
-import java.util.HashSet;
 import java.util.Random;
-import java.util.Set;
+import java.util.List;
 import java.util.Arrays;
 
 
@@ -93,10 +93,12 @@ public class MiniGraphUIIndoor {
     private ButtonGroup allEncoders = new ButtonGroup();
     HintsMap map;
     final Graph graph;
+    private IndoorExtension indoorExtension;
 
     public MiniGraphUIIndoor(GraphHopperIndoor hopper, boolean debug) {
         graph = hopper.getGraphHopperStorage();
         this.nodeAccess = graph.getNodeAccess();
+        this.indoorExtension = (IndoorExtension)graph.getExtension();
         encoder = hopper.getEncodingManager().getEncoder("indoor");
         map = new HintsMap("fastest").
                         setVehicle("indoor");
@@ -260,7 +262,6 @@ public class MiniGraphUIIndoor {
             public void paintComponent(final Graphics2D g2) {
                 if (fromRes == null || toRes == null)
                     return;
-
                 makeTransparent(g2);
                 QueryGraph qGraph = new QueryGraph(routingGraph).lookup(fromRes, toRes);
                 RoutingAlgorithm algo = algoFactory.createAlgo(qGraph, algoOpts);
@@ -271,13 +272,22 @@ public class MiniGraphUIIndoor {
                 StopWatch sw = new StopWatch().start();
                 logger.info("start searching with " + algo + " from:" + fromRes + " to:" + toRes + " " + weighting);
 
-                Color red = Color.red.brighter();
-                g2.setColor(red);
-                mg.plotNode(g2, qGraph.getNodeAccess(), fromRes.getClosestNode(), red, 10, "");
-                mg.plotNode(g2, qGraph.getNodeAccess(), toRes.getClosestNode(), red, 10, "");
+                Color otherLevel = Color.red.darker();
+                Color sameLevel = Color.red.brighter();
+                if (fromLevel.equals(currentLevel))
+                    g2.setColor(sameLevel);
+                else
+                    g2.setColor(otherLevel);
 
+                mg.plotNode(g2, qGraph.getNodeAccess(), fromRes.getClosestNode(), g2.getColor(), 10, "");
+                if (toLevel.equals(currentLevel))
+                    g2.setColor(sameLevel);
+                else
+                    g2.setColor(otherLevel);
+                mg.plotNode(g2, qGraph.getNodeAccess(), toRes.getClosestNode(), g2.getColor(), 10, "");
                 path = algo.calcPath(fromRes.getClosestNode(), toRes.getClosestNode());
                 sw.stop();
+
 
                 // if directed edges
                 if (!path.isFound()) {
@@ -288,7 +298,7 @@ public class MiniGraphUIIndoor {
                 logger.info("found path in " + sw.getSeconds() + "s with nodes:"
                         + path.calcNodes().size() + ", millis: " + path.getTime()
                         + ", visited nodes:" + algo.getVisitedNodes());
-                g2.setColor(red);
+                g2.setColor(otherLevel);
                 plotPath(path, g2, 2);
             }
 
@@ -343,6 +353,9 @@ public class MiniGraphUIIndoor {
             return tmpPath;
         }
 
+        Color otherLevel = Color.red.darker();
+        Color sameLevel = Color.red.brighter();
+
         double prevLat = Double.NaN;
         double prevLon = Double.NaN;
         boolean plotNodes = false;
@@ -352,10 +365,26 @@ public class MiniGraphUIIndoor {
                 plotNodeName(g2, nodes.get(i));
             }
         }
+
+
         PointList list = tmpPath.calcPoints();
+
+        PointListIndoor indoorList = PointListIndoor.fromPath(path,indoorExtension,Integer.parseInt(fromLevel),Integer.parseInt(toLevel));
+
         for (int i = 0; i < list.getSize(); i++) {
-            double lat = list.getLatitude(i);
-            double lon = list.getLongitude(i);
+            double lat = indoorList.getLatitude(i);
+            double lon = indoorList.getLongitude(i);
+            int level = indoorList.getLevel(i);
+
+            if(Integer.toString(level).equals(currentLevel)) {
+                g2.setColor(sameLevel);
+                w = 4;
+            }
+            else {
+                g2.setColor(otherLevel);
+                w = 3;
+            }
+
             if (!Double.isNaN(prevLat)) {
                 mg.plotEdge(g2, prevLat, prevLon, lat, lon, w);
             } else {

@@ -20,6 +20,7 @@ package com.graphhopper.routing.util;
 import com.graphhopper.reader.ReaderRelation;
 import com.graphhopper.reader.ReaderWay;
 import com.graphhopper.routing.weighting.PriorityWeighting;
+import com.graphhopper.storage.IndoorExtension;
 import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.PMap;
 
@@ -59,14 +60,9 @@ public class IndoorFlagEncoder extends AbstractFlagEncoder {
         restrictions.addAll(Arrays.asList("indoor", "access"));
         restrictedValues.add("private");
         restrictedValues.add("no");
-        //restrictedValues.add("restricted");
-        //restrictedValues.add("military");
-        //restrictedValues.add("emergency");
+
 
         intendedValues.add("yes");
-        //intendedValues.add("designated");
-        //intendedValues.add("official");
-        //intendedValues.add("permissive");
         intendedValues.add("public");
 
 
@@ -249,8 +245,10 @@ public class IndoorFlagEncoder extends AbstractFlagEncoder {
     public void applyWayTags(ReaderWay way, EdgeIteratorState edge) {
         if (edge instanceof EdgeIteratorIndoor) {
             String level = way.getTag("level", "");
+
             EdgeIteratorIndoor edgeIndoor = (EdgeIteratorIndoor) edge;
             edgeIndoor.setFloor(level);
+
         }
     }
 }
