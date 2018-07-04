@@ -19,7 +19,6 @@ package com.graphhopper.ui;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.graphhopper.coll.GHBitSet;
-import com.graphhopper.coll.GHIntArrayList;
 import com.graphhopper.coll.GHTBitSet;
 import com.graphhopper.reader.osm.GraphHopperIndoor;
 import com.graphhopper.routing.*;
@@ -48,7 +47,6 @@ import java.awt.event.MouseWheelListener;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.util.Random;
-import java.util.List;
 import java.util.Arrays;
 
 
@@ -610,7 +608,7 @@ public class MiniGraphUIIndoor {
                 float width = 2.8f;
                 if (edge instanceof EdgeIteratorIndoor) {
                     EdgeIteratorIndoor edgeIndoor = (EdgeIteratorIndoor) edge;
-                    if (!edgeIndoor.getFloor().equals(currentLevel)) {
+                    if (!edgeIndoor.getLevel().equals(currentLevel)) {
                         g2.setColor(Color.LIGHT_GRAY);
                         width = 2f;
                     } else {

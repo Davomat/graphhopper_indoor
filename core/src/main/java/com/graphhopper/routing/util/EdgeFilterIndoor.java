@@ -2,13 +2,11 @@ package com.graphhopper.routing.util;
 
 import com.graphhopper.util.EdgeIteratorState;
 
-import java.util.Set;
-
 public class EdgeFilterIndoor implements EdgeFilter {
-    private String currentFloor = "";
+    private String currentLevel = "";
 
-    public EdgeFilterIndoor(String currentFloor) {
-        this.currentFloor = currentFloor;
+    public EdgeFilterIndoor(String currentLevel) {
+        this.currentLevel = currentLevel;
     }
 
     @Override
@@ -21,7 +19,7 @@ public class EdgeFilterIndoor implements EdgeFilter {
                     "You used " + edgeState.getClass() + " instead");
         }
 
-        if (edgeIndoor.getFloor().equals(currentFloor))
+        if (edgeIndoor.getLevel().equals(currentLevel))
             return true;
 
         return false;

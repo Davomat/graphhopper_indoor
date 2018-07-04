@@ -20,7 +20,6 @@ package com.graphhopper.routing.util;
 import com.graphhopper.reader.ReaderRelation;
 import com.graphhopper.reader.ReaderWay;
 import com.graphhopper.routing.weighting.PriorityWeighting;
-import com.graphhopper.storage.IndoorExtension;
 import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.PMap;
 
@@ -247,7 +246,7 @@ public class IndoorFlagEncoder extends AbstractFlagEncoder {
             String level = way.getTag("level", "");
 
             EdgeIteratorIndoor edgeIndoor = (EdgeIteratorIndoor) edge;
-            edgeIndoor.setFloor(level);
+            edgeIndoor.setLevel(level);
 
         }
     }

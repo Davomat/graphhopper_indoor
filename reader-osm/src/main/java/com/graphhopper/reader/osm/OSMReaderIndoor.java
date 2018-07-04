@@ -70,7 +70,6 @@ public class OSMReaderIndoor extends OSMReader {
     void preProcess(File osmFile) {
         try (OSMInput in = openOsmInputFile(osmFile)) {
             long tmpWayCounter = 1;
-            long tmpRelationCounter = 1;
             ReaderElement item;
             while ((item = in.getNext()) != null) {
                 if (item.isType(ReaderElement.WAY)) {
@@ -119,29 +118,4 @@ public class OSMReaderIndoor extends OSMReader {
         return osmDataDate;
     }
 
-
-
-
-    @Override
-    void processWay(ReaderWay way) {
-        super.processWay(way);
-        String level = way.getTag("level");
-        if (level.contains(";")){
-            LongArrayList osmNodeIds = way.getNodes();
-            if(osmNodeIds.size()==2){
-                int first = getNodeMap().get(osmNodeIds.get(0));
-                int last = getNodeMap().get(osmNodeIds.get(osmNodeIds.size() - 1));
-                double firstLat = getTmpLatitude(first), firstLon = getTmpLongitude(first);
-                double lastLat = getTmpLatitude(last), lastLon = getTmpLongitude(last);
-                if (!Double.isNaN(firstLat) && !Double.isNaN(firstLon) && !Double.isNaN(lastLat) && !Double.isNaN(lastLon)) {
-                    double estimatedDist = distCalc.calcDist(firstLat, firstLon, lastLat, lastLon);
-                    // Add artificial tag for the estimated distance and center
-                    way.setTag("estimated_distance", 100);
-                    way.setTag("estimated_center", new GHPoint((firstLat + lastLat) / 2, (firstLon + lastLon) / 2));
-                }
-            }
-            else
-                throw new UnsupportedOperationException("way consisting of two different levels must not have more than two nodes");
-        }
-    }
 }

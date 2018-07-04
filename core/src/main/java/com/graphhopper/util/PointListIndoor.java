@@ -326,15 +326,4 @@ public class PointListIndoor extends PointList{
         return levels;
     }
 
-
-//
-//    public static PointList from(LineString lineString) {
-//        final PointList pointList = new PointList();
-//        for (Coordinate coordinate : lineString.getCoordinates()) {
-//            pointList.add(new GHPoint(coordinate.y, coordinate.x));
-//        }
-//        return pointList;
-//    }
-
-
 }
