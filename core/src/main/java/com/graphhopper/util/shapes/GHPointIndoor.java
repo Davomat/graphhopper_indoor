@@ -1,11 +1,13 @@
 package com.graphhopper.util.shapes;
 
+import com.graphhopper.storage.IndoorExtension;
+
 public class GHPointIndoor extends GHPoint3D {
     public double lat;
     public double lon;
-    public String level;
+    public int level;
 
-    public GHPointIndoor(double lat, double lon, String level) {
+    public GHPointIndoor(double lat, double lon, int level) {
         super(lat,lon,Double.NaN);
         this.lat = lat;
         this.lon = lon;
@@ -23,7 +25,7 @@ public class GHPointIndoor extends GHPoint3D {
             try {
                 double fromLat = Double.parseDouble(fromStrs[0]);
                 double fromLon = Double.parseDouble(fromStrs[1]);
-                String level = fromStrs[2];
+                int level = Integer.parseInt(fromStrs[2]);
                 if (lonLatOrder)
                     return new GHPointIndoor(fromLon, fromLat,level);
 
@@ -34,13 +36,13 @@ public class GHPointIndoor extends GHPoint3D {
         return null;
     }
 
-    public String getLevel(){
+    public int getLevel(){
         return this.level;
     }
 
     @Override
     public boolean isValid() {
-        return super.isValid() && this.level!=null;
+        return super.isValid() && this.level!=Integer.MAX_VALUE;
     }
 
     @Override

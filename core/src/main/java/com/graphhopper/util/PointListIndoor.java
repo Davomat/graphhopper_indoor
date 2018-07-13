@@ -17,6 +17,7 @@
  */
 package com.graphhopper.util;
 
+import com.graphhopper.routing.VirtualEdgeIteratorState;
 import com.graphhopper.storage.GraphExtension;
 import com.graphhopper.storage.IndoorExtension;
 import com.graphhopper.storage.NodeAccess;
@@ -54,6 +55,7 @@ public class PointListIndoor extends PointList{
         levels = new int[cap];
         latitudes = new double[cap];
         longitudes = new double[cap];
+        elevations = new double[cap];
     }
 
 
@@ -71,35 +73,41 @@ public class PointListIndoor extends PointList{
         }
     }
 
-    static public PointListIndoor fromPath(Path path, IndoorExtension indoorExtension,int fromLevel,int toLevel){
-        PointList list = path.calcPoints();
-        if(list.isEmpty())
-            return new PointListIndoor();
-        List<EdgeIteratorState> edges = path.calcEdges();
-        int levels[] = new int[list.getSize()];
-        int index = 0;
-        int nodeCount = edges.get(0).fetchWayGeometry(1).getSize(); //get the number nodes of the first edge exclusive the adjacent node
-        for(int i=0;i<nodeCount;i++){
-            levels[index] = fromLevel;
-            index++;
-        }
-        levels[0] = fromLevel;
+    static public PointListIndoor fromPath(Path path, IndoorExtension indoorExtension,int[] virtualLevels){
+        return fromPointList(path.calcPoints(),path.calcEdges(),indoorExtension,virtualLevels);
+    }
 
-        for(int i=1;i<edges.size();i++){
-            int baseNode= edges.get(i).getBaseNode();
-            int level = indoorExtension.getLevel(baseNode);
-            nodeCount = edges.get(i).fetchWayGeometry(1).getSize();
+
+    static public PointListIndoor fromPointList(PointList pointList, List<EdgeIteratorState> edges,IndoorExtension indoorExtension,int[] virtualLevels){
+        int levels[] = new int[pointList.getSize()];
+        int index = 0;
+        int virtualIndex = 0;
+
+
+        for(int i=0;i<edges.size();i++){
+            EdgeIteratorState edge = edges.get(i);
+            int baseNode= edge.getBaseNode();
+            int level;
+            if(edge instanceof VirtualEdgeIteratorState){
+                level = virtualLevels[virtualIndex];
+                virtualIndex++;
+            }
+            else
+                level = indoorExtension.getLevel(baseNode);
+            int nodeCount = edges.get(i).fetchWayGeometry(1).getSize();
             for(int j=0;j<nodeCount;j++){
                 levels[index] = level;
                 index++;
             }
         }
 
-        levels[levels.length-1] = toLevel;
+        levels[index] = virtualLevels[virtualLevels.length-1];
 
-        PointListIndoor pointListIndoor = new PointListIndoor(list,levels);
+        PointListIndoor pointListIndoor = new PointListIndoor(pointList,levels);
         return pointListIndoor;
     }
+
+
 
     @Override
     public int getDimension() {
@@ -125,6 +133,9 @@ public class PointListIndoor extends PointList{
     public void set(int index, double lat, double lon, double ele,int level) {
         super.set(index,lat,lon,ele);
         levels[index] = level;
+        this.latitudes[index] = lat;
+        this.longitudes[index] = lon;
+        this.elevations[index] = ele;
     }
 
     private void incCap(int newSize) {
@@ -137,8 +148,7 @@ public class PointListIndoor extends PointList{
         latitudes = Arrays.copyOf(latitudes, cap);
         longitudes = Arrays.copyOf(longitudes, cap);
         levels = Arrays.copyOf(levels,cap);
-        if (is3D)
-            elevations = Arrays.copyOf(elevations, cap);
+        elevations = Arrays.copyOf(elevations, cap);
     }
 
 
@@ -166,7 +176,7 @@ public class PointListIndoor extends PointList{
         }
         else if(pointAccess instanceof GHPointIndoor) {
             GHPointIndoor indoorPoint = (GHPointIndoor) pointAccess;
-            add(indoorPoint.lat, indoorPoint.lon, indoorPoint.ele, Integer.parseInt(indoorPoint.level));
+            add(indoorPoint.lat, indoorPoint.lon, indoorPoint.ele, indoorPoint.level);
         }
         else throw new UnsupportedOperationException();
     }
@@ -176,7 +186,7 @@ public class PointListIndoor extends PointList{
             GHPointIndoor indoorPoint = (GHPointIndoor)point;
             if(is3D)
                 throw new UnsupportedOperationException("Elevation is not supported for indoor points!");
-            add(indoorPoint.lat,indoorPoint.lon,Double.NaN,Integer.parseInt(indoorPoint.level));
+            add(indoorPoint.lat,indoorPoint.lon,Double.NaN,indoorPoint.level);
         }
     }
 

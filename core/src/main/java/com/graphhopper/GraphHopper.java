@@ -25,10 +25,7 @@ import com.graphhopper.routing.ch.CHAlgoFactoryDecorator;
 import com.graphhopper.routing.ch.PrepareContractionHierarchies;
 import com.graphhopper.routing.lm.LMAlgoFactoryDecorator;
 import com.graphhopper.routing.subnetwork.PrepareRoutingSubnetworks;
-import com.graphhopper.routing.template.AlternativeRoutingTemplate;
-import com.graphhopper.routing.template.RoundTripRoutingTemplate;
-import com.graphhopper.routing.template.RoutingTemplate;
-import com.graphhopper.routing.template.ViaRoutingTemplate;
+import com.graphhopper.routing.template.*;
 import com.graphhopper.routing.util.*;
 import com.graphhopper.routing.weighting.*;
 import com.graphhopper.storage.*;
@@ -1010,6 +1007,8 @@ public class GraphHopper implements GraphHopperAPI {
                 routingTemplate = new RoundTripRoutingTemplate(request, ghRsp, locationIndex, maxRoundTripRetries);
             else if (ALT_ROUTE.equalsIgnoreCase(algoStr))
                 routingTemplate = new AlternativeRoutingTemplate(request, ghRsp, locationIndex);
+            else if (encodingManager.isIndoor())
+                routingTemplate = new RoutingTemplateIndoor(request,ghRsp,locationIndex,(IndoorExtension)getGraphHopperStorage().getExtension());
             else
                 routingTemplate = new ViaRoutingTemplate(request, ghRsp, locationIndex);
 

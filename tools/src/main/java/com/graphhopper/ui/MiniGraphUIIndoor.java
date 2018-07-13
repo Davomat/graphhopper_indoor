@@ -365,9 +365,14 @@ public class MiniGraphUIIndoor {
         }
 
 
+        int[] levels = new int[2];
+        levels[0] = Integer.parseInt(fromLevel);
+        levels[1] = Integer.parseInt(toLevel);
+        tmpPath.setLevels(levels);
         PointList list = tmpPath.calcPoints();
 
-        PointListIndoor indoorList = PointListIndoor.fromPath(path,indoorExtension,Integer.parseInt(fromLevel),Integer.parseInt(toLevel));
+
+        PointListIndoor indoorList = PointListIndoor.fromPath(tmpPath,indoorExtension,levels);
 
         for (int i = 0; i < list.getSize(); i++) {
             double lat = indoorList.getLatitude(i);
@@ -443,8 +448,8 @@ public class MiniGraphUIIndoor {
                                         + " to " + toLat + "," + toLon);
                                 // get from and to node id
 
-                                fromRes = index.findClosest(fromLat, fromLon, new EdgeFilterIndoor(fromLevel));
-                                toRes = index.findClosest(toLat, toLon, new EdgeFilterIndoor(toLevel));
+                                fromRes = index.findClosest(fromLat, fromLon, new EdgeFilterIndoor(Integer.parseInt(fromLevel)));
+                                toRes = index.findClosest(toLat, toLon, new EdgeFilterIndoor(Integer.parseInt(toLevel)));
                                 logger.info("found ids " + fromRes + " -> " + toRes + " in " + sw.stop().getSeconds() + "s");
 
                                 repaintPaths();

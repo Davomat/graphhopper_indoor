@@ -413,4 +413,9 @@ public class EncodingManager {
         }
         return false;
     }
+
+    public boolean isIndoor() {
+        return (supports("indoor")||supports("nostairs")||supports("noelevators"));
+
+    }
 }

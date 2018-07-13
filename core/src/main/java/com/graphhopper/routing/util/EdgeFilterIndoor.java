@@ -5,8 +5,8 @@ import com.graphhopper.util.EdgeIteratorState;
 public class EdgeFilterIndoor implements EdgeFilter {
     private String currentLevel = "";
 
-    public EdgeFilterIndoor(String currentLevel) {
-        this.currentLevel = currentLevel;
+    public EdgeFilterIndoor(int currentLevel) {
+        this.currentLevel = Integer.toString(currentLevel);
     }
 
     @Override

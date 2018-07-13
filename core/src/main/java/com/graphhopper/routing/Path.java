@@ -22,9 +22,7 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import com.graphhopper.coll.GHIntArrayList;
 import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.routing.weighting.Weighting;
-import com.graphhopper.storage.Graph;
-import com.graphhopper.storage.NodeAccess;
-import com.graphhopper.storage.SPTEntry;
+import com.graphhopper.storage.*;
 import com.graphhopper.util.*;
 import com.graphhopper.util.details.PathDetail;
 import com.graphhopper.util.details.PathDetailsBuilder;
@@ -67,6 +65,8 @@ public class Path {
     private GHIntArrayList edgeIds;
     private double weight;
     private NodeAccess nodeAccess;
+    GraphExtension graphExtension;
+    int []levels;
 
     public Path(Graph graph, Weighting weighting) {
         this.weight = Double.MAX_VALUE;
@@ -75,6 +75,7 @@ public class Path {
         this.weighting = weighting;
         this.encoder = weighting.getFlagEncoder();
         this.edgeIds = new GHIntArrayList();
+        this.graphExtension = graph.getExtension();
     }
 
     /**
@@ -352,6 +353,10 @@ public class Path {
 
             }
         });
+        if(graphExtension instanceof IndoorExtension){
+            PointListIndoor pointsIndoor = PointListIndoor.fromPointList(points,calcEdges(),(IndoorExtension)graphExtension,levels);
+            return pointsIndoor;
+        }
         return points;
     }
 
@@ -419,5 +424,9 @@ public class Path {
         void next(EdgeIteratorState edge, int index, int prevEdgeId);
 
         void finish();
+    }
+
+    public void setLevels(int[] levels) {
+        this.levels = levels;
     }
 }

@@ -109,9 +109,15 @@ public class DouglasPeucker {
             } else if (freeIndex < 0) {
                 continue;
             }
+            if(points instanceof PointListIndoor) {
+                ((PointListIndoor)points).set(freeIndex, points.getLatitude(currentIndex), points.getLongitude(currentIndex), points.getElevation(currentIndex),((PointListIndoor)points).getLevel(currentIndex));
+                ((PointListIndoor)points).set(currentIndex, Double.NaN, Double.NaN, Double.NaN,Integer.MAX_VALUE);
+            }
+            else{
+                points.set(freeIndex, points.getLatitude(currentIndex), points.getLongitude(currentIndex), points.getElevation(currentIndex));
+                points.set(currentIndex, Double.NaN, Double.NaN, Double.NaN);
+            }
 
-            points.set(freeIndex, points.getLatitude(currentIndex), points.getLongitude(currentIndex), points.getElevation(currentIndex));
-            points.set(currentIndex, Double.NaN, Double.NaN, Double.NaN);
             // find next free index
             int max = currentIndex;
             int searchIndex = freeIndex + 1;
@@ -157,7 +163,10 @@ public class DouglasPeucker {
         int counter = 0;
         if (maxDist < normedMaxDist) {
             for (int i = fromIndex + 1; i < lastIndex; i++) {
-                points.set(i, Double.NaN, Double.NaN, Double.NaN);
+                if(points instanceof PointListIndoor)
+                    ((PointListIndoor)points).set(i, Double.NaN, Double.NaN, Double.NaN,Integer.MAX_VALUE);
+                else
+                    points.set(i, Double.NaN, Double.NaN, Double.NaN);
                 counter++;
             }
         } else {

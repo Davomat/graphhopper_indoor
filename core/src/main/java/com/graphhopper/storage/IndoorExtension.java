@@ -1,14 +1,17 @@
 package com.graphhopper.storage;
 
+import com.graphhopper.util.EdgeIteratorState;
+
+import java.io.Console;
+
 public class IndoorExtension implements GraphExtension {
     private static final int NO_LEVEL = Integer.MIN_VALUE;
-    BaseGraphIndoor baseGraph;
+    NodeAccess nodeAccess;
 
     public NodeAccess getNodeAccess() {
         return nodeAccess;
     }
 
-    NodeAccess nodeAccess;
     @Override
     public boolean isRequireNodeField() {
         return true;
@@ -43,11 +46,9 @@ public class IndoorExtension implements GraphExtension {
 
     @Override
     public void init(Graph graph, Directory dir) {
-        if(graph instanceof BaseGraphIndoor){
-            this.baseGraph = (BaseGraphIndoor)graph;
+        if (graph instanceof BaseGraphIndoor) {
             this.nodeAccess = graph.getNodeAccess();
-        }
-        else throw new IllegalStateException("You need to use an indoor graph for this graph extension!");
+        } else throw new IllegalStateException("You need to use an indoor graph for this graph extension!");
     }
 
 
@@ -86,7 +87,7 @@ public class IndoorExtension implements GraphExtension {
         catch(NumberFormatException exc){}
     }
 
-    public int getLevel(int index){
+    public int getLevel(int index) {
         return nodeAccess.getAdditionalNodeField(index);
     }
 }
