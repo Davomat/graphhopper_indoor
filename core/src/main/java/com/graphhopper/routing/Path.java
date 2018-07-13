@@ -66,6 +66,7 @@ public class Path {
     private double weight;
     private NodeAccess nodeAccess;
     GraphExtension graphExtension;
+    boolean indoor;
     int []levels;
 
     public Path(Graph graph, Weighting weighting) {
@@ -76,6 +77,7 @@ public class Path {
         this.encoder = weighting.getFlagEncoder();
         this.edgeIds = new GHIntArrayList();
         this.graphExtension = graph.getExtension();
+        this.indoor = graphExtension instanceof IndoorExtension;
     }
 
     /**
@@ -353,7 +355,7 @@ public class Path {
 
             }
         });
-        if(graphExtension instanceof IndoorExtension){
+        if(isIndoor()){
             PointListIndoor pointsIndoor = PointListIndoor.fromPointList(points,calcEdges(),(IndoorExtension)graphExtension,levels);
             return pointsIndoor;
         }
@@ -428,5 +430,9 @@ public class Path {
 
     public void setLevels(int[] levels) {
         this.levels = levels;
+    }
+
+    public boolean isIndoor() {
+        return indoor;
     }
 }

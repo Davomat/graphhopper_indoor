@@ -41,9 +41,9 @@ public class PointListIndoor extends PointList{
     private final static DistanceCalc3D distCalc3D = Helper.DIST_3D;
     final static String ERR_MSG = "Tried to access PointList with too big index!";
     protected int size = 0;
-    private double[] latitudes;
-    private double[] longitudes;
-    private double[] elevations;
+    //private double[] latitudes;
+    //private double[] longitudes;
+    //private double[] elevations;
     private int[] levels;
 
     public PointListIndoor() {
@@ -53,9 +53,9 @@ public class PointListIndoor extends PointList{
     public PointListIndoor(int cap, boolean is3D) {
         super(cap,is3D);
         levels = new int[cap];
-        latitudes = new double[cap];
-        longitudes = new double[cap];
-        elevations = new double[cap];
+        //latitudes = new double[cap];
+        //longitudes = new double[cap];
+        //elevations = new double[cap];
     }
 
 
@@ -133,22 +133,23 @@ public class PointListIndoor extends PointList{
     public void set(int index, double lat, double lon, double ele,int level) {
         super.set(index,lat,lon,ele);
         levels[index] = level;
-        this.latitudes[index] = lat;
-        this.longitudes[index] = lon;
-        this.elevations[index] = ele;
+        //this.latitudes[index] = lat;
+        //this.longitudes[index] = lon;
+        //this.elevations[index] = ele;
     }
 
     private void incCap(int newSize) {
-        if (newSize <= latitudes.length)
+        if (newSize <= levels.length)
             return;
+
 
         int cap = newSize * 2;
         if (cap < 15)
             cap = 15;
-        latitudes = Arrays.copyOf(latitudes, cap);
-        longitudes = Arrays.copyOf(longitudes, cap);
+        //super.latitudes = Arrays.copyOf(latitudes, cap);
+        //longitudes = Arrays.copyOf(longitudes, cap);
         levels = Arrays.copyOf(levels,cap);
-        elevations = Arrays.copyOf(elevations, cap);
+        //elevations = Arrays.copyOf(elevations, cap);
     }
 
 
