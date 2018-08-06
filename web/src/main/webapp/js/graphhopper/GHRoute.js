@@ -55,7 +55,7 @@ GHroute.prototype = {
 
         for (i = 0, l = this.length; i < l; i++) {
             point = this[i];
-            if (point.toString() === coord.toString()) {
+            if (point.toStringWithoutLevel() === coord.toString()) {
                 index = i;
                 break;
             }
@@ -76,7 +76,7 @@ GHroute.prototype = {
                     this.move(-1, to, true);
                     to++;
                 } else
-                    to = this.lenght - 1;
+                    to = this.length - 1;
                 this.fire('route.add', {
                     point: this[to],
                     to: to
@@ -88,7 +88,7 @@ GHroute.prototype = {
             if (to !== undefined)
                 this.move(-1, to, true);
             else
-                to = this.lenght - 1;
+                to = this.length - 1;
             this.fire('route.add', {
                 point: this[to],
                 to: to

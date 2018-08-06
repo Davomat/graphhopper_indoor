@@ -62,18 +62,18 @@
                     </div>
                 </div>
                 <div class="clear"></div>
-                <div id="levels">
-                    <form>
-                        <input type="radio" name="level" value="1"> 1
-                        <br>
-                        <input type="radio" name="level" value="0"> EG
-                        <br>
-                        <input type="radio" name="level" value="-1"> UG
-                    </form>
-                </div>
-
                 <input id="searchButton" type="submit" value="Search">
             </form>
+            <div id="levels">
+                <form>
+                    <input type="radio" name="level" value="1"> 1
+                    <br>
+                    <input type="radio" name="level" value="0"> EG
+                    <br>
+                    <input type="radio" name="level" value="-1"> UG
+                </form>
+            </div>
+
             <div id="export-link" class="left">
                 <a href="/maps">
                     <img src='img/link.png'>
@@ -112,7 +112,6 @@
                 <img id="{id}_Indicator" class="hidden pointIndicator" src="img/loading.gif" />
                 <img id="{id}_Flag" class="pointFlag" src="img/marker-small-green.png" />
                 <input id="{id}_Input" class="pointInput" type="text" placeholder="" />
-                <div id="{id}_Level" class="level" level="{level}"></div>
                 <div class="pointDelete">
                     <img src="./img/point_delete.png">
                 </div>

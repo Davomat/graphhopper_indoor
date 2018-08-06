@@ -103,6 +103,7 @@ $(document).ready(function (e) {
     $('#levels').click(function (e) {
         //change currentLevel
         currentLevel = $('input[name=level]:checked', '#levels').val();
+        mySubmit();
     });
 
 
@@ -347,10 +348,9 @@ function checkInput() {
     for (var i = 0; i < len; i++) {
         var div = $('#locationpoints > div.pointDiv').eq(i);
         // console.log(div.length + ", index:" + i + ", len:" + len);
-        //!!!!!
         if (div.length === 0) {
             $('#locationpoints > div.pointAdd').before(translate.nanoTemplate(template, {
-                id: i,level: currentLevel
+                id: i
             }));
             div = $('#locationpoints > div.pointDiv').eq(i);
         }
@@ -394,7 +394,7 @@ function setToEnd(e) {
 }
 
 function setStartCoord(e) {
-    ghRequest.route.set(tools.indoorPoint(e.latlng.wrap(),currentLevel),0);
+    ghRequest.route.set(tools.indoorPoint(e.latlng.wrap(), currentLevel), 0);
     resolveFrom();
     routeIfAllResolved();
 }
@@ -410,7 +410,7 @@ function setIntermediateCoord(e) {
         };
     });
     var index = routeManipulation.getIntermediatePointIndex(routeSegments, e.latlng);
-    ghRequest.route.add(tools.indoorPoint(e.latlng.wrap(),currentLevel), index);
+    ghRequest.route.add(tools.indoorPoint(e.latlng.wrap(), currentLevel), index);
     resolveIndex(index);
     routeIfAllResolved();
 }
@@ -424,7 +424,7 @@ function deleteCoord(e) {
 
 function setEndCoord(e) {
     var index = ghRequest.route.size() - 1;
-    ghRequest.route.set(tools.indoorPoint(e.latlng.wrap(),currentLevel), index);
+    ghRequest.route.set(tools.indoorPoint(e.latlng.wrap(), currentLevel), index);
     resolveTo();
     routeIfAllResolved();
 }
@@ -583,11 +583,13 @@ function routeLatLng(request, doQuery) {
                     if (!layer.setStyle)
                         return;
 
-                    var doHighlight = layer.feature === currentGeoJson;
-                    layer.setStyle(doHighlight ? highlightRouteStyle : alternativeRouteStye);
-                    if (doHighlight) {
+                    if (currentGeoJson.properties.level == currentLevel) {
                         if (!L.Browser.ie && !L.Browser.opera)
                             layer.bringToFront();
+                    }
+                    else {
+                        if (!L.Browser.ie && !L.Browser.opera)
+                            layer.bringToBack();
                     }
                 });
 
@@ -611,20 +613,17 @@ function routeLatLng(request, doQuery) {
         }
 
         // the routing layer uses the geojson properties.style for the style, see map.js
-        var defaultRouteStyle = {
-            color: "#00cc33",
+
+        var sameLevelStyle = {
+            color: "green",
+            "weight": 6,
+            "opacity": 0.9
+        };
+       
+        var otherLevelStyle = {
+            color: "gray",
             "weight": 5,
-            "opacity": 0.6
-        };
-        var highlightRouteStyle = {
-            color: "#00cc33",
-            "weight": 6,
-            "opacity": 0.8
-        };
-        var alternativeRouteStye = {
-            color: "darkgray",
-            "weight": 6,
-            "opacity": 0.8
+            "opacity": 0.9
         };
         var geoJsons = [];
         var firstHeader;
@@ -654,20 +653,49 @@ function routeLatLng(request, doQuery) {
 
             headerTabs.append(tabHeader);
             var path = json.paths[pathIndex];
-            var style = (pathIndex === 0) ? defaultRouteStyle : alternativeRouteStye;
-
-            var geojsonFeature = {
-                "type": "Feature",
-                "geometry": path.points,
-                "properties": {
-                    "style": style,
-                    name: "route",
-                    snapped_waypoints: path.snapped_waypoints
+            var pointIndex = 0;
+            while (pointIndex < path.points.coordinates.length) {
+                var tmpCoordinates = [];
+                var tmpWayPoints = []
+                var pointOnSameLevel = false;
+                var level = path.points.levels[pointIndex];
+                while (level == path.points.levels[pointIndex]) {
+                    for (var i = 0; i<path.snapped_waypoints.coordinates.length;i++){
+                       if (path.snapped_waypoints.coordinates[i].toString() === path.points.coordinates[pointIndex].toString()) 
+                            tmpWayPoints.push(path.snapped_waypoints.coordinates[i])
+                    }
+                    pointOnSameLevel = true;
+                    tmpCoordinates.push(path.points.coordinates[pointIndex])
+                    pointIndex++;
                 }
-            };
+                if(!pointOnSameLevel){
+                    pointIndex++;
+                }
+                if(pointIndex!=path.points.coordinates.length)
+                    tmpCoordinates.push(path.points.coordinates[pointIndex]);
+                var style = (level == currentLevel) ? sameLevelStyle : otherLevelStyle;
+                var geojsonFeature = {
+                    "type": "Feature",
+                    "geometry": {
+                        "coordinates": tmpCoordinates,
+                        "type": "LineString"
+                    },
+                    "properties": {
+                        "style": style,
+                        name: "route",
+                        "level": level,
+                        snapped_waypoints: {
+                            "coordinates": tmpWayPoints,
+                            "type": "MultiPoint"
+                        }
 
-            geoJsons.push(geojsonFeature);
-            mapLayer.addDataToRoutingLayer(geojsonFeature);
+                    }
+                };
+
+                geoJsons.push(geojsonFeature);
+                mapLayer.addDataToRoutingLayer(geojsonFeature);
+
+            }
             var oneTab = $("<div class='route_result_tab'>");
             routeResultsDiv.append(oneTab);
             tabHeader.click(createClickHandler(geoJsons, pathIndex, tabHeader, oneTab, request.hasElevation(), request.useMiles));
@@ -772,25 +800,25 @@ function mySubmit() {
         allStr = [],
         inputOk = true;
     var location_points = $("#locationpoints > div.pointDiv > input.pointInput");
-    var len = location_points.size;
+    var len = location_points.length;
     $.each(location_points, function (index) {
         if (index === 0) {
             fromStr = $(this).val();
-            console.log("fromStr: "+fromStr)
+            console.log("fromStr: " + fromStr)
             if (fromStr !== translate.tr("from_hint") && fromStr !== "")
                 allStr.push(fromStr);
             else
                 inputOk = false;
         } else if (index === (len - 1)) {
             toStr = $(this).val();
-            console.log("toStr: "+toStr);
+            console.log("toStr: " + toStr);
             if (toStr !== translate.tr("to_hint") && toStr !== "")
                 allStr.push(toStr);
             else
                 inputOk = false;
         } else {
             viaStr = $(this).val();
-            console.log("viaStr: "+viaStr);
+            console.log("viaStr: " + viaStr);
             if (viaStr !== translate.tr("via_hint") && viaStr !== "")
                 allStr.push(viaStr);
             else

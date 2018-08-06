@@ -41,7 +41,7 @@ public class RoutingTemplateIndoor extends ViaRoutingTemplate {
         levels = new int[points.size()];
         for (int placeIndex = 0; placeIndex < points.size(); placeIndex++) {
             GHPointIndoor point = (GHPointIndoor)points.get(placeIndex);
-            levels[placeIndex] = ((GHPointIndoor) points.get(placeIndex)).getLevel();
+            levels[placeIndex] = point.level;
             QueryResult res;
             res = locationIndex.findClosest(point.lat, point.lon, new EdgeFilterIndoor(point.level));
 
@@ -66,10 +66,9 @@ public class RoutingTemplateIndoor extends ViaRoutingTemplate {
     @Override
     public List<Path> calcPaths(QueryGraph queryGraph, RoutingAlgorithmFactory algoFactory, AlgorithmOptions algoOpts) {
         List<Path> paths = super.calcPaths(queryGraph, algoFactory, algoOpts);
-        int levelIndex = 0;
         for(int i=0;i<paths.size();i++){
             Path path = paths.get(i);
-            int[] partLevels = {levels[levelIndex],levels[levelIndex+1]};
+            int[] partLevels = {levels[i],levels[i+1]};
             path.setLevels(partLevels);
         }
         return paths;

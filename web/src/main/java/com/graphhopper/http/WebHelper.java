@@ -18,6 +18,7 @@
 package com.graphhopper.http;
 
 import com.graphhopper.util.PointList;
+import com.graphhopper.util.PointListIndoor;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -45,10 +46,16 @@ public class WebHelper {
     }
 
     public static PointList decodePolyline(String encoded, int initCap, boolean is3D) {
+        return decodePolyline(encoded,initCap,is3D,false);
+    }
+
+
+        public static PointList decodePolyline(String encoded, int initCap, boolean is3D, boolean isIndoor) {
         PointList poly = new PointList(initCap, is3D);
         int index = 0;
         int len = encoded.length();
         int lat = 0, lng = 0, ele = 0;
+        int level = 0;
         while (index < len) {
             // latitude
             int b, shift = 0, result = 0;
@@ -71,6 +78,7 @@ public class WebHelper {
             int deltaLongitude = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
             lng += deltaLongitude;
 
+
             if (is3D) {
                 // elevation
                 shift = 0;
@@ -83,7 +91,22 @@ public class WebHelper {
                 int deltaElevation = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
                 ele += deltaElevation;
                 poly.add((double) lat / 1e5, (double) lng / 1e5, (double) ele / 100);
-            } else
+                }
+             //   level
+            else if(isIndoor){
+                shift = 0;
+                result = 0;
+                do {
+                    b = encoded.charAt(index++) - 63;
+                    result |= (b & 0x1f) << shift;
+                    shift += 5;
+                } while (b >= 0x20);
+                int deltaLevel = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+                level += deltaLevel;
+                ((PointListIndoor)poly).add((double) lat / 1e5, (double) lng / 1e5,level);
+
+            }
+            else
                 poly.add((double) lat / 1e5, (double) lng / 1e5);
         }
         return poly;
@@ -98,10 +121,12 @@ public class WebHelper {
 
     public static String encodePolyline(PointList poly, boolean includeElevation) {
         StringBuilder sb = new StringBuilder();
+        boolean isIndoor = poly instanceof PointListIndoor;
         int size = poly.getSize();
         int prevLat = 0;
         int prevLon = 0;
         int prevEle = 0;
+        int prevLevel = 0;
         for (int i = 0; i < size; i++) {
             int num = (int) Math.floor(poly.getLatitude(i) * 1e5);
             encodeNumber(sb, num - prevLat);
@@ -113,6 +138,11 @@ public class WebHelper {
                 num = (int) Math.floor(poly.getElevation(i) * 100);
                 encodeNumber(sb, num - prevEle);
                 prevEle = num;
+            }
+            if(isIndoor){
+                num = ((PointListIndoor)poly).getLevel(i);
+                encodeNumber(sb,num-prevLevel);
+                prevLevel = num;
             }
         }
         return sb.toString();

@@ -22,6 +22,7 @@ import com.graphhopper.PathWrapper;
 import com.graphhopper.util.Helper;
 import com.graphhopper.util.InstructionList;
 import com.graphhopper.util.PointList;
+import com.graphhopper.util.PointListIndoor;
 import com.graphhopper.util.exceptions.GHException;
 import com.graphhopper.util.shapes.BBox;
 
@@ -126,6 +127,8 @@ public class SimpleRouteSerializer implements RouteSerializer {
         Map<String, Object> jsonPoints = new HashMap<String, Object>();
         jsonPoints.put("type", "LineString");
         jsonPoints.put("coordinates", points.toGeoJson(includeElevation));
+        if(points instanceof PointListIndoor)
+            jsonPoints.put("levels",((PointListIndoor)points).getLevels());
         return jsonPoints;
     }
 }

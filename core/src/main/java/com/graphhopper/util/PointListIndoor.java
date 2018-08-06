@@ -78,10 +78,9 @@ public class PointListIndoor extends PointList{
     }
 
 
-    static public PointListIndoor fromPointList(PointList pointList, List<EdgeIteratorState> edges,IndoorExtension indoorExtension,int[] virtualLevels){
+     static public PointListIndoor fromPointList(PointList pointList, List<EdgeIteratorState> edges,IndoorExtension indoorExtension,int[] virtualLevels){
         int levels[] = new int[pointList.getSize()];
         int index = 0;
-        int virtualIndex = 0;
 
 
         for(int i=0;i<edges.size();i++){
@@ -89,19 +88,23 @@ public class PointListIndoor extends PointList{
             int baseNode= edge.getBaseNode();
             int level;
             if(edge instanceof VirtualEdgeIteratorState){
-                level = virtualLevels[virtualIndex];
-                virtualIndex++;
+                if(i == 0)
+                    level = virtualLevels[0];
+                else if (i == edges.size())
+                    level = virtualLevels[1];
+                else
+                    level = levels[index - 1];
             }
             else
                 level = indoorExtension.getLevel(baseNode);
-            int nodeCount = edges.get(i).fetchWayGeometry(1).getSize();
+            int nodeCount = edge.fetchWayGeometry(1).getSize();
             for(int j=0;j<nodeCount;j++){
                 levels[index] = level;
                 index++;
             }
         }
 
-        levels[index] = virtualLevels[virtualLevels.length-1];
+        levels[index] = virtualLevels[1];
 
         PointListIndoor pointListIndoor = new PointListIndoor(pointList,levels);
         return pointListIndoor;
@@ -201,7 +204,7 @@ public class PointListIndoor extends PointList{
                 levels[tmp] = ((PointListIndoor)points).getLevel(i);
             }
             size = newSize;
-        }else {
+        }else if(!points.isEmpty()){
             throw new UnsupportedOperationException("You can only add a list of indoor points!");
         }
     }
@@ -250,6 +253,7 @@ public class PointListIndoor extends PointList{
                 sb.append(',');
                 sb.append(getElevation(i));
             }
+            sb.append(", ");
             sb.append(getLevel(i));
             sb.append(')');
         }

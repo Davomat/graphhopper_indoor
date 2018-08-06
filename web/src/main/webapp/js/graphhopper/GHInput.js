@@ -49,7 +49,6 @@ GHInput.prototype.set = function (strOrObject) {
             this.lat = round(parseFloat(pointComponents[0]));
             this.lng = round(parseFloat(pointComponents[1]));
             this.level = pointComponents[2];
-            
         } else {
             this.setUnresolved();
         }
@@ -60,6 +59,12 @@ GHInput.prototype.set = function (strOrObject) {
         this.setUnresolved();
     }
 }
+
+GHInput.prototype.toStringWithoutLevel = function () {
+    if (this.lat !== undefined && this.lng !== undefined)
+        return this.lat + "," + this.lng;
+    return undefined;
+};
 
 GHInput.prototype.toString = function () {
     if (this.lat !== undefined && this.lng !== undefined)

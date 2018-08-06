@@ -38,7 +38,7 @@ var GHRequest = function (host, api_key) {
     this.useMiles = false;
     // use jsonp here if host allows CORS
     this.dataType = "json";
-    this.api_params = {"locale": "en", "vehicle": "car", "weighting": "fastest", "elevation": false,
+    this.api_params = {"locale": "en", "vehicle": "car", "weighting": "fastest", "elevation": false,"indoor": true,
         "key": api_key, "pt": {}};
 
     // register events
@@ -142,6 +142,10 @@ GHRequest.prototype.hasElevation = function () {
     return this.api_params.elevation;
 };
 
+GHRequest.prototype.isIndoor = function(){
+    return this.api_params.indoor;
+}
+
 GHRequest.prototype.getVehicle = function () {
     return this.api_params.vehicle;
 };
@@ -241,16 +245,19 @@ GHRequest.prototype.doRequest = function (url, callback) {
                     var path = json.paths[i];
                     // convert encoded polyline to geo json
                     if (path.points_encoded) {
-                        var tmpArray = graphhopperTools.decodePath(path.points, that.hasElevation());
+                        var tmpPath = graphhopperTools.decodePath(path.points, that.hasElevation(),that.isIndoor());
                         path.points = {
                             "type": "LineString",
-                            "coordinates": tmpArray
+                            "coordinates": tmpPath["coordinates"],
+                            "levels": tmpPath["levels"]
+
                         };
 
-                        var tmpSnappedArray = graphhopperTools.decodePath(path.snapped_waypoints, that.hasElevation());
+                        var tmpSnappedPath = graphhopperTools.decodePath(path.snapped_waypoints, that.hasElevation(),that.isIndoor());
                         path.snapped_waypoints = {
                             "type": "MultiPoint",
-                            "coordinates": tmpSnappedArray
+                            "coordinates": tmpSnappedPath["coordinates"],
+                            "levels": tmpSnappedPath["levels"]
                         };
                     }
                 }

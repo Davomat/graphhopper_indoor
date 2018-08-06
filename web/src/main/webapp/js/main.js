@@ -42882,7 +42882,6 @@ GHInput.prototype.set = function (strOrObject) {
             this.lat = round(parseFloat(pointComponents[0]));
             this.lng = round(parseFloat(pointComponents[1]));
             this.level = pointComponents[2];
-            
         } else {
             this.setUnresolved();
         }
@@ -42893,6 +42892,12 @@ GHInput.prototype.set = function (strOrObject) {
         this.setUnresolved();
     }
 }
+
+GHInput.prototype.toStringWithoutLevel = function () {
+    if (this.lat !== undefined && this.lng !== undefined)
+        return this.lat + "," + this.lng;
+    return undefined;
+};
 
 GHInput.prototype.toString = function () {
     if (this.lat !== undefined && this.lng !== undefined)
@@ -42943,7 +42948,7 @@ var GHRequest = function (host, api_key) {
     this.useMiles = false;
     // use jsonp here if host allows CORS
     this.dataType = "json";
-    this.api_params = {"locale": "en", "vehicle": "car", "weighting": "fastest", "elevation": false,
+    this.api_params = {"locale": "en", "vehicle": "car", "weighting": "fastest", "elevation": false,"indoor": true,
         "key": api_key, "pt": {}};
 
     // register events
@@ -43047,6 +43052,10 @@ GHRequest.prototype.hasElevation = function () {
     return this.api_params.elevation;
 };
 
+GHRequest.prototype.isIndoor = function(){
+    return this.api_params.indoor;
+}
+
 GHRequest.prototype.getVehicle = function () {
     return this.api_params.vehicle;
 };
@@ -43088,7 +43097,6 @@ GHRequest.prototype.createPointParams = function (useRawInput) {
 
     for (i = 0, l = this.route.size(); i < l; i++) {
         point = this.route.getIndex(i);
-        console.log("point in createPointParams: "+point);
         if (i > 0)
             str += "&";
         if (typeof point.input == 'undefined')
@@ -43147,16 +43155,19 @@ GHRequest.prototype.doRequest = function (url, callback) {
                     var path = json.paths[i];
                     // convert encoded polyline to geo json
                     if (path.points_encoded) {
-                        var tmpArray = graphhopperTools.decodePath(path.points, that.hasElevation());
+                        var tmpPath = graphhopperTools.decodePath(path.points, that.hasElevation(),that.isIndoor());
                         path.points = {
                             "type": "LineString",
-                            "coordinates": tmpArray
+                            "coordinates": tmpPath["coordinates"],
+                            "levels": tmpPath["levels"]
+
                         };
 
-                        var tmpSnappedArray = graphhopperTools.decodePath(path.snapped_waypoints, that.hasElevation());
+                        var tmpSnappedPath = graphhopperTools.decodePath(path.snapped_waypoints, that.hasElevation(),that.isIndoor());
                         path.snapped_waypoints = {
                             "type": "MultiPoint",
-                            "coordinates": tmpSnappedArray
+                            "coordinates": tmpSnappedPath["coordinates"],
+                            "levels": tmpSnappedPath["levels"]
                         };
                     }
                 }
@@ -43285,7 +43296,7 @@ GHroute.prototype = {
 
         for (i = 0, l = this.length; i < l; i++) {
             point = this[i];
-            if (point.toString() === coord.toString()) {
+            if (point.toStringWithoutLevel() === coord.toString()) {
                 index = i;
                 break;
             }
@@ -43306,7 +43317,7 @@ GHroute.prototype = {
                     this.move(-1, to, true);
                     to++;
                 } else
-                    to = this.lenght - 1;
+                    to = this.length - 1;
                 this.fire('route.add', {
                     point: this[to],
                     to: to
@@ -43318,7 +43329,7 @@ GHroute.prototype = {
             if (to !== undefined)
                 this.move(-1, to, true);
             else
-                to = this.lenght - 1;
+                to = this.length - 1;
             this.fire('route.add', {
                 point: this[to],
                 to: to
@@ -43453,14 +43464,17 @@ GHroute.prototype = {
 module.exports = GHroute;
 
 },{"./GHInput.js":13}],16:[function(require,module,exports){
-var decodePath = function (encoded, is3D) {
+var decodePath = function (encoded, is3D,isIndoor) {
     // var start = new Date().getTime();
     var len = encoded.length;
     var index = 0;
     var array = [];
+    var coordinates = [];
+    var levels = [];
     var lat = 0;
     var lng = 0;
     var ele = 0;
+    var level = 0;
 
     while (index < len) {
         var b;
@@ -43497,12 +43511,31 @@ var decodePath = function (encoded, is3D) {
             var deltaEle = ((result & 1) ? ~(result >> 1) : (result >> 1));
             ele += deltaEle;
             array.push([lng * 1e-5, lat * 1e-5, ele / 100]);
-        } else
+            coordinates.push([lng * 1e-5, lat * 1e-5, ele / 100]);
+        } 
+        if (isIndoor){
+            shift = 0;
+            result = 0;
+            do
+            {
+                b = encoded.charCodeAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            var deltaLevel = ((result & 1) ? ~(result >> 1) : (result >> 1));
+            level += deltaLevel;
+            array.push([lng * 1e-5, lat * 1e-5, level]);
+            coordinates.push([lng * 1e-5, lat * 1e-5]);
+            levels.push(level);
+        }
+        else
             array.push([lng * 1e-5, lat * 1e-5]);
     }
     // var end = new Date().getTime();
     // console.log("decoded " + len + " coordinates in " + ((end - start) / 1000) + "s");
-    return array;
+    var path = {"coordinates": coordinates,"levels": levels};
+    //return array;
+    return path;
 };
 
 var indoorPoint = function(latlng,level){
@@ -44643,6 +44676,7 @@ $(document).ready(function (e) {
     $('#levels').click(function (e) {
         //change currentLevel
         currentLevel = $('input[name=level]:checked', '#levels').val();
+        mySubmit();
     });
 
 
@@ -44796,7 +44830,7 @@ $(document).ready(function (e) {
 
 function initFromParams(params, doQuery) {
     ghRequest.init(params);
-    console.log("Params: "+params);
+
     var flatpickr = new Flatpickr(document.getElementById("input_date_0"), {
         defaultDate: new Date(),
         allowInput: true,
@@ -44834,7 +44868,7 @@ function initFromParams(params, doQuery) {
 function resolveCoords(pointsAsStr, doQuery) {
     for (var i = 0, l = pointsAsStr.length; i < l; i++) {
         var pointStr = pointsAsStr[i];
-        console.log("pointsStr: "+pointStr);
+        console.log("pointsStr: "+pointStr)
         var coords = ghRequest.route.getIndex(i);
         if (!coords || pointStr !== coords.input || !coords.isResolved())
             ghRequest.route.set(pointStr, i, true);
@@ -44888,10 +44922,9 @@ function checkInput() {
     for (var i = 0; i < len; i++) {
         var div = $('#locationpoints > div.pointDiv').eq(i);
         // console.log(div.length + ", index:" + i + ", len:" + len);
-        //!!!!!
         if (div.length === 0) {
             $('#locationpoints > div.pointAdd').before(translate.nanoTemplate(template, {
-                id: i,level: currentLevel
+                id: i
             }));
             div = $('#locationpoints > div.pointDiv').eq(i);
         }
@@ -44935,7 +44968,7 @@ function setToEnd(e) {
 }
 
 function setStartCoord(e) {
-    ghRequest.route.set(tools.indoorPoint(e.latlng.wrap(),currentLevel),0);
+    ghRequest.route.set(tools.indoorPoint(e.latlng.wrap(), currentLevel), 0);
     resolveFrom();
     routeIfAllResolved();
 }
@@ -44951,7 +44984,7 @@ function setIntermediateCoord(e) {
         };
     });
     var index = routeManipulation.getIntermediatePointIndex(routeSegments, e.latlng);
-    ghRequest.route.add(tools.indoorPoint(e.latlng.wrap(),currentLevel), index);
+    ghRequest.route.add(tools.indoorPoint(e.latlng.wrap(), currentLevel), index);
     resolveIndex(index);
     routeIfAllResolved();
 }
@@ -44965,7 +44998,7 @@ function deleteCoord(e) {
 
 function setEndCoord(e) {
     var index = ghRequest.route.size() - 1;
-    ghRequest.route.set(tools.indoorPoint(e.latlng.wrap(),currentLevel), index);
+    ghRequest.route.set(tools.indoorPoint(e.latlng.wrap(), currentLevel), index);
     resolveTo();
     routeIfAllResolved();
 }
@@ -44979,6 +45012,7 @@ function routeIfAllResolved(doQuery) {
 }
 
 function setFlag(coord, index) {
+    console.log("Coord: ",coord);
     if (coord.lat) {
         var toFrom = getToFrom(index);
         // intercept openPopup
@@ -45124,11 +45158,13 @@ function routeLatLng(request, doQuery) {
                     if (!layer.setStyle)
                         return;
 
-                    var doHighlight = layer.feature === currentGeoJson;
-                    layer.setStyle(doHighlight ? highlightRouteStyle : alternativeRouteStye);
-                    if (doHighlight) {
+                    if (currentGeoJson.properties.level == currentLevel) {
                         if (!L.Browser.ie && !L.Browser.opera)
                             layer.bringToFront();
+                    }
+                    else {
+                        if (!L.Browser.ie && !L.Browser.opera)
+                            layer.bringToBack();
                     }
                 });
 
@@ -45152,20 +45188,17 @@ function routeLatLng(request, doQuery) {
         }
 
         // the routing layer uses the geojson properties.style for the style, see map.js
-        var defaultRouteStyle = {
-            color: "#00cc33",
+
+        var sameLevelStyle = {
+            color: "green",
+            "weight": 6,
+            "opacity": 0.9
+        };
+       
+        var otherLevelStyle = {
+            color: "gray",
             "weight": 5,
-            "opacity": 0.6
-        };
-        var highlightRouteStyle = {
-            color: "#00cc33",
-            "weight": 6,
-            "opacity": 0.8
-        };
-        var alternativeRouteStye = {
-            color: "darkgray",
-            "weight": 6,
-            "opacity": 0.8
+            "opacity": 0.9
         };
         var geoJsons = [];
         var firstHeader;
@@ -45195,20 +45228,49 @@ function routeLatLng(request, doQuery) {
 
             headerTabs.append(tabHeader);
             var path = json.paths[pathIndex];
-            var style = (pathIndex === 0) ? defaultRouteStyle : alternativeRouteStye;
-
-            var geojsonFeature = {
-                "type": "Feature",
-                "geometry": path.points,
-                "properties": {
-                    "style": style,
-                    name: "route",
-                    snapped_waypoints: path.snapped_waypoints
+            var pointIndex = 0;
+            while (pointIndex < path.points.coordinates.length) {
+                var tmpCoordinates = [];
+                var tmpWayPoints = []
+                var pointOnSameLevel = false;
+                var level = path.points.levels[pointIndex];
+                while (level == path.points.levels[pointIndex]) {
+                    for (var i = 0; i<path.snapped_waypoints.coordinates.length;i++){
+                       if (path.snapped_waypoints.coordinates[i].toString() === path.points.coordinates[pointIndex].toString()) 
+                            tmpWayPoints.push(path.snapped_waypoints.coordinates[i])
+                    }
+                    pointOnSameLevel = true;
+                    tmpCoordinates.push(path.points.coordinates[pointIndex])
+                    pointIndex++;
                 }
-            };
+                if(!pointOnSameLevel){
+                    pointIndex++;
+                }
+                if(pointIndex!=path.points.coordinates.length)
+                    tmpCoordinates.push(path.points.coordinates[pointIndex]);
+                var style = (level == currentLevel) ? sameLevelStyle : otherLevelStyle;
+                var geojsonFeature = {
+                    "type": "Feature",
+                    "geometry": {
+                        "coordinates": tmpCoordinates,
+                        "type": "LineString"
+                    },
+                    "properties": {
+                        "style": style,
+                        name: "route",
+                        "level": level,
+                        snapped_waypoints: {
+                            "coordinates": tmpWayPoints,
+                            "type": "MultiPoint"
+                        }
 
-            geoJsons.push(geojsonFeature);
-            mapLayer.addDataToRoutingLayer(geojsonFeature);
+                    }
+                };
+
+                geoJsons.push(geojsonFeature);
+                mapLayer.addDataToRoutingLayer(geojsonFeature);
+
+            }
             var oneTab = $("<div class='route_result_tab'>");
             routeResultsDiv.append(oneTab);
             tabHeader.click(createClickHandler(geoJsons, pathIndex, tabHeader, oneTab, request.hasElevation(), request.useMiles));
@@ -45313,25 +45375,25 @@ function mySubmit() {
         allStr = [],
         inputOk = true;
     var location_points = $("#locationpoints > div.pointDiv > input.pointInput");
-    var len = location_points.size;
+    var len = location_points.length;
     $.each(location_points, function (index) {
         if (index === 0) {
             fromStr = $(this).val();
-            console.log("fromStr: "+fromStr)
+            console.log("fromStr: " + fromStr)
             if (fromStr !== translate.tr("from_hint") && fromStr !== "")
                 allStr.push(fromStr);
             else
                 inputOk = false;
         } else if (index === (len - 1)) {
             toStr = $(this).val();
-            console.log("toStr: "+toStr);
+            console.log("toStr: " + toStr);
             if (toStr !== translate.tr("to_hint") && toStr !== "")
                 allStr.push(toStr);
             else
                 inputOk = false;
         } else {
             viaStr = $(this).val();
-            console.log("viaStr: "+viaStr);
+            console.log("viaStr: " + viaStr);
             if (viaStr !== translate.tr("via_hint") && viaStr !== "")
                 allStr.push(viaStr);
             else
@@ -45974,7 +46036,6 @@ module.exports.getIntermediatePointIndex = function(routeSegments, clickedLocati
     var result = distancesAndNextWayPointIndices.reduce(function(prev, curr) {
        return (curr.distance - prev.distance) < 1.e-6 ? curr : prev;
     }).nextWayPointIndex;
-
     result = (result > 0 && result < wayPoints.length) ? result : 1; //just for safety
     return result;
 };
