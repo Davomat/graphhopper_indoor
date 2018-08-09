@@ -3,7 +3,6 @@ package com.graphhopper.http;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.PathWrapper;
-import com.graphhopper.reader.osm.GraphHopperIndoor;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.util.StopWatch;

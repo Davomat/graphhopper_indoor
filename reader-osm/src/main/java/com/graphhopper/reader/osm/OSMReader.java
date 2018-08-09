@@ -159,11 +159,20 @@ public class OSMReader implements DataReader {
             long tmpWayCounter = 1;
             long tmpRelationCounter = 1;
             ReaderElement item;
+            Set<String> allLevels = new HashSet<String>();
+
             while ((item = in.getNext()) != null) {
                 if (item.isType(ReaderElement.WAY)) {
                     final ReaderWay way = (ReaderWay) item;
                     boolean valid = filterWay(way);
                     if (valid) {
+                        String level = way.getTag("level","");
+                        if (!level.isEmpty()) {
+                            if (!level.contains(";")) {
+                                allLevels.add(level);
+                            }
+
+                        }
                         LongIndexedContainer wayNodes = way.getNodes();
                         int s = wayNodes.size();
                         for (int index = 0; index < s; index++) {
@@ -192,6 +201,9 @@ public class OSMReader implements DataReader {
                     osmDataDate = Helper.createFormatter().parse(fileHeader.getTag("timestamp"));
                 }
 
+            }
+            if (allLevels.size() > 0) {
+                this.ghStorage.getProperties().put("levels", allLevels);
             }
         } catch (Exception ex) {
             throw new RuntimeException("Problem while parsing file", ex);

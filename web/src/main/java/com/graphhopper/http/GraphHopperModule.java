@@ -26,7 +26,6 @@ import com.graphhopper.json.GHJson;
 import com.graphhopper.json.GHJsonFactory;
 import com.graphhopper.json.geo.JsonFeatureCollection;
 import com.graphhopper.reader.osm.GraphHopperOSM;
-import com.graphhopper.reader.osm.GraphHopperIndoor;
 import com.graphhopper.routing.lm.LandmarkStorage;
 import com.graphhopper.routing.lm.PrepareLandmarks;
 import com.graphhopper.routing.util.EncodingManager;
@@ -69,9 +68,9 @@ public class GraphHopperModule extends AbstractModule {
     @Provides
     @Singleton
     GraphHopper createGraphHopper(CmdArgs args) {
-        GraphHopper graphHopper = new GraphHopperIndoor().forServer();
-        SpatialRuleLookupHelper.buildAndInjectSpatialRuleIntoGH(graphHopper, args);
-
+        GraphHopper graphHopper = new GraphHopperOSM(
+                SpatialRuleLookupHelper.createLandmarkSplittingFeatureCollection(args.get(Parameters.Landmark.PREPARE + "split_area_location",""))
+        ).forServer();
         graphHopper.init(args);
         return graphHopper;
     }

@@ -66,17 +66,12 @@ public class IndoorFlagEncoder extends AbstractFlagEncoder {
 
 
         setBlockByDefault(false);
-        //potentialBarriers.add("gate");
-        //potentialBarriers.add("stairs");
 
         safeHighwayTags.add("footway");
         safeHighwayTags.add("stairs");
         safeHighwayTags.add("elevator");
 
-
-        //
         allowedHighwayTags.addAll(safeHighwayTags);
-        //allowedHighwayTags.addAll(avoidHighwayTags);
 
         maxPossibleSpeed = MEAN_SPEED;
 

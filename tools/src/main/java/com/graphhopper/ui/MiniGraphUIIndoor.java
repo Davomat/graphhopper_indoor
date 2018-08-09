@@ -20,7 +20,10 @@ package com.graphhopper.ui;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.graphhopper.coll.GHBitSet;
 import com.graphhopper.coll.GHTBitSet;
-import com.graphhopper.reader.osm.GraphHopperIndoor;
+import com.graphhopper.GraphHopper;
+
+import com.graphhopper.reader.osm.GraphHopperOSM;
+
 import com.graphhopper.routing.*;
 import com.graphhopper.routing.ch.PreparationWeighting;
 import com.graphhopper.routing.ch.PrepareContractionHierarchies;
@@ -59,6 +62,8 @@ import java.util.Arrays;
  * <p>
  *
  * @author Peter Karich
+ *
+ * adapted for Indoor Navigation
  */
 public class MiniGraphUIIndoor {
     //    private final Graph graph;
@@ -92,8 +97,12 @@ public class MiniGraphUIIndoor {
     HintsMap map;
     final Graph graph;
     private IndoorExtension indoorExtension;
+    Color edgeOnSameLevel = new Color(45, 163, 85);
+    Color edgeOnDifferentLevel = new Color(193, 193, 193);
+    Color wayOnSameLevel = new Color(174, 239, 190);
+    Color wayOnDifferentLevel = new Color(244,244,244);
 
-    public MiniGraphUIIndoor(GraphHopperIndoor hopper, boolean debug) {
+    public MiniGraphUIIndoor(GraphHopper hopper, boolean debug) {
         graph = hopper.getGraphHopperStorage();
         this.nodeAccess = graph.getNodeAccess();
         this.indoorExtension = (IndoorExtension)graph.getExtension();
@@ -101,7 +110,7 @@ public class MiniGraphUIIndoor {
         map = new HintsMap("fastest").
                         setVehicle("indoor");
 
-        boolean ch = false;
+        boolean ch = false; //currently doesn't work with contraction hierarchies!!
         if (ch) {
             map.put(Parameters.Landmark.DISABLE, true);
             weighting = hopper.getCHFactoryDecorator().getWeightings().get(0);
@@ -270,18 +279,18 @@ public class MiniGraphUIIndoor {
                 StopWatch sw = new StopWatch().start();
                 logger.info("start searching with " + algo + " from:" + fromRes + " to:" + toRes + " " + weighting);
 
-                Color otherLevel = Color.red.darker();
-                Color sameLevel = Color.red.brighter();
+
+
                 if (fromLevel.equals(currentLevel))
-                    g2.setColor(sameLevel);
+                    g2.setColor(edgeOnSameLevel);
                 else
-                    g2.setColor(otherLevel);
+                    g2.setColor(edgeOnDifferentLevel);
 
                 mg.plotNode(g2, qGraph.getNodeAccess(), fromRes.getClosestNode(), g2.getColor(), 10, "");
                 if (toLevel.equals(currentLevel))
-                    g2.setColor(sameLevel);
+                    g2.setColor(edgeOnSameLevel);
                 else
-                    g2.setColor(otherLevel);
+                    g2.setColor(edgeOnDifferentLevel);
                 mg.plotNode(g2, qGraph.getNodeAccess(), toRes.getClosestNode(), g2.getColor(), 10, "");
                 path = algo.calcPath(fromRes.getClosestNode(), toRes.getClosestNode());
                 sw.stop();
@@ -296,7 +305,6 @@ public class MiniGraphUIIndoor {
                 logger.info("found path in " + sw.getSeconds() + "s with nodes:"
                         + path.calcNodes().size() + ", millis: " + path.getTime()
                         + ", visited nodes:" + algo.getVisitedNodes());
-                g2.setColor(otherLevel);
                 plotPath(path, g2, 2);
             }
 
@@ -312,7 +320,8 @@ public class MiniGraphUIIndoor {
 
     public static void main(String[] strs) throws Exception {
         CmdArgs args = CmdArgs.read(strs);
-        GraphHopperIndoor hopper = new GraphHopperIndoor();
+        //GraphHopperIndoor hopper = new GraphHopperIndoor();
+        GraphHopperOSM hopper = new GraphHopperOSM();
         hopper.init(args).importOrLoad();
         boolean debug = args.getBool("minigraphui.debug", false);
         new MiniGraphUIIndoor(hopper, debug).visualize();
@@ -351,9 +360,6 @@ public class MiniGraphUIIndoor {
             return tmpPath;
         }
 
-        Color otherLevel = Color.red.darker();
-        Color sameLevel = Color.red.brighter();
-
         double prevLat = Double.NaN;
         double prevLon = Double.NaN;
         boolean plotNodes = false;
@@ -380,11 +386,11 @@ public class MiniGraphUIIndoor {
             int level = indoorList.getLevel(i);
 
             if(Integer.toString(level).equals(currentLevel)) {
-                g2.setColor(sameLevel);
+                g2.setColor(edgeOnSameLevel);
                 w = 4;
             }
             else {
-                g2.setColor(otherLevel);
+                g2.setColor(edgeOnDifferentLevel);
                 w = 3;
             }
 
@@ -545,9 +551,9 @@ public class MiniGraphUIIndoor {
     public class EncoderListener implements ActionListener{
         private JToggleButton encoderButton;
         private String encoderString;
-        private GraphHopperIndoor hopper;
+        private GraphHopper hopper;
 
-        EncoderListener(JToggleButton encoderButton,String encoderString,GraphHopperIndoor hopper) {
+        EncoderListener(JToggleButton encoderButton,String encoderString,GraphHopper hopper) {
             this.encoderButton = encoderButton;
             this.encoderString = encoderString;
             this.hopper = hopper;
@@ -599,7 +605,6 @@ public class MiniGraphUIIndoor {
 
         @Override
         public void paintComponent(Graphics2D g2) {
-
             clearGraphics(g2);
             Rectangle d = getBounds();
             BBox b = mg.setBounds(0, d.width, 0, d.height);
@@ -607,17 +612,17 @@ public class MiniGraphUIIndoor {
                 rand.setSeed(0);
                 bitset.clear();
             }
+            float width = 2.8f;
 
             AllEdgesIterator edge = graph.getAllEdges();
             while (edge.next()) {
-                float width = 2.8f;
                 if (edge instanceof EdgeIteratorIndoor) {
                     EdgeIteratorIndoor edgeIndoor = (EdgeIteratorIndoor) edge;
                     if (!edgeIndoor.getLevel().equals(currentLevel)) {
-                        g2.setColor(Color.LIGHT_GRAY);
-                        width = 2f;
+                        g2.setColor(wayOnDifferentLevel);
+                        //width = 2f;
                     } else {
-                        g2.setColor(Color.GREEN);
+                        g2.setColor(wayOnSameLevel);
                     }
                 }
                 if (fastPaint && rand.nextInt(30) > 1)

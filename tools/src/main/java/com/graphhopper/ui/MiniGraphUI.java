@@ -84,11 +84,14 @@ public class MiniGraphUI {
     public MiniGraphUI(GraphHopper hopper, boolean debug) {
         final Graph graph = hopper.getGraphHopperStorage();
         this.na = graph.getNodeAccess();
+//        encoder = hopper.getEncodingManager().getEncoder("foot");
         encoder = hopper.getEncodingManager().getEncoder("car");
-        HintsMap map = new HintsMap("fastest").
-                setVehicle("car");
 
-        boolean ch = true;
+        HintsMap map = new HintsMap("fastest").
+//                setVehicle("foot");
+            setVehicle("car");
+
+        boolean ch = false;
         if (ch) {
             map.put(Parameters.Landmark.DISABLE, true);
             weighting = hopper.getCHFactoryDecorator().getWeightings().get(0);
