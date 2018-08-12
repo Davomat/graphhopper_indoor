@@ -139,11 +139,7 @@ public class GHServer {
                 } else {
                     install(new GraphHopperModule(args));
                 }
-                if (args.get("indoor", "no").equals("yes"))
-                    install(new GraphHopperServletModuleIndoor(args));
-
-                else
-                    install(new GraphHopperServletModule(args));
+                install(new GraphHopperServletModule(args));
             }
         };
     }

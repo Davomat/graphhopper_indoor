@@ -25,6 +25,7 @@ import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.util.StopWatch;
 import com.graphhopper.util.shapes.GHPoint;
+import com.graphhopper.util.shapes.GHPointIndoor;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -262,6 +263,11 @@ public class GraphHopperServlet extends GHBaseServlet {
             String[] fromStrs = str.split(",");
             if (fromStrs.length == 2) {
                 GHPoint point = GHPoint.parse(str);
+                if (point != null)
+                    infoPoints.add(point);
+            }
+            if (fromStrs.length == 3) {
+                GHPointIndoor point = GHPointIndoor.parse(str);
                 if (point != null)
                     infoPoints.add(point);
             }

@@ -91,52 +91,9 @@ public class IndoorFlagEncoder extends AbstractFlagEncoder {
         // larger value required - ferries are faster than pedestrians
         speedEncoder = new EncodedDoubleValue("Speed", shift, speedBits, speedFactor, MEAN_SPEED, maxPossibleSpeed);
         shift += speedEncoder.getBits();
-
-        priorityWayEncoder = new EncodedValue("PreferWay", shift, 3, 1, 0, 7);
-        shift += priorityWayEncoder.getBits();
         return shift;
     }
 
-    @Override
-    public int defineRelationBits(int index, int shift) {
-        relationCodeEncoder = new EncodedValue("RelationCode", shift, 3, 1, 0, 7);
-        return shift + relationCodeEncoder.getBits();
-    }
-
-    /**
-     * Foot flag encoder does not provide any turn cost / restrictions
-     */
-    @Override
-    public int defineTurnBits(int index, int shift) {
-        return shift;
-    }
-
-    /**
-     * Foot flag encoder does not provide any turn cost / restrictions
-     * <p>
-     *
-     * @return <code>false</code>
-     */
-    @Override
-    public boolean isTurnRestricted(long flag) {
-        return false;
-    }
-
-    /**
-     * Foot flag encoder does not provide any turn cost / restrictions
-     * <p>
-     *
-     * @return 0
-     */
-    @Override
-    public double getTurnCost(long flag) {
-        return 0;
-    }
-
-    @Override
-    public long getTurnFlags(boolean restricted, double costs) {
-        return 0;
-    }
 
     /**
      * Some ways are okay but not separate for pedestrians.
@@ -172,61 +129,10 @@ public class IndoorFlagEncoder extends AbstractFlagEncoder {
 
         long flags = 0;
 
-        int priorityFromRelation = 0;
-        if (relationFlags != 0)
-            priorityFromRelation = (int) relationCodeEncoder.getValue(relationFlags);
-
         flags = speedEncoder.setDoubleValue(flags, MEAN_SPEED);
         flags |= directionBitMask;
 
-        flags = priorityWayEncoder.setValue(flags, handlePriority(way, priorityFromRelation));
         return flags;
-    }
-
-    @Override
-    public double getDouble(long flags, int key) {
-        switch (key) {
-            case PriorityWeighting.KEY:
-                return (double) priorityWayEncoder.getValue(flags) / BEST.getValue();
-            default:
-                return super.getDouble(flags, key);
-        }
-    }
-
-    protected int handlePriority(ReaderWay way, int priorityFromRelation) {
-        TreeMap<Double, Integer> weightToPrioMap = new TreeMap<Double, Integer>();
-        if (priorityFromRelation == 0)
-            weightToPrioMap.put(0d, UNCHANGED.getValue());
-        else
-            weightToPrioMap.put(110d, priorityFromRelation);
-
-        collect(way, weightToPrioMap);
-
-        // pick priority with biggest order value
-        return weightToPrioMap.lastEntry().getValue();
-    }
-
-    /**
-     * @param weightToPrioMap associate a weight with every priority. This sorted map allows
-     *                        subclasses to 'insert' more important priorities as well as overwrite determined priorities.
-     */
-    void collect(ReaderWay way, TreeMap<Double, Integer> weightToPrioMap) {
-        String highway = way.getTag("highway");
-        if (way.hasTag("foot", "designated"))
-            weightToPrioMap.put(100d, PREFER.getValue());
-
-        double maxSpeed = getMaxSpeed(way);
-        if (safeHighwayTags.contains(highway) || maxSpeed > 0 && maxSpeed <= 20) {
-            weightToPrioMap.put(40d, PREFER.getValue());
-        }
-    }
-
-    @Override
-    public boolean supports(Class<?> feature) {
-        if (super.supports(feature))
-            return true;
-
-        return PriorityWeighting.class.isAssignableFrom(feature);
     }
 
     @Override
