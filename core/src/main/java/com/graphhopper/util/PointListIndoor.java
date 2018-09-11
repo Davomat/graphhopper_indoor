@@ -66,11 +66,6 @@ public class PointListIndoor extends PointList{
         }
     }
 
-    static public PointListIndoor fromPath(Path path, IndoorExtension indoorExtension,int[] virtualLevels){
-        return fromPointList(path.calcPoints(),path.calcEdges(),indoorExtension,virtualLevels);
-    }
-
-
      static public PointListIndoor fromPointList(PointList pointList, List<EdgeIteratorState> edges,IndoorExtension indoorExtension,int[] virtualLevels){
         int levels[] = new int[pointList.getSize()];
         int index = 0;

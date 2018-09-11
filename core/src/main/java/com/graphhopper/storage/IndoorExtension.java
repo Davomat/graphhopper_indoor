@@ -5,7 +5,6 @@ import com.graphhopper.util.EdgeIteratorState;
 import java.io.Console;
 
 public class IndoorExtension implements GraphExtension {
-    private static final int NO_LEVEL = Integer.MIN_VALUE;
     NodeAccess nodeAccess;
 
     public NodeAccess getNodeAccess() {
@@ -29,8 +28,8 @@ public class IndoorExtension implements GraphExtension {
 
     @Override
     public int getDefaultNodeFieldValue() {
-        return NO_LEVEL;
-    }
+        return 0;
+    } //
 
     @Override
     public void setSegmentSize(int bytes) {

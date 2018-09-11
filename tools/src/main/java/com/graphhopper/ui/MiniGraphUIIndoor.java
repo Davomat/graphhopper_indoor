@@ -97,10 +97,10 @@ public class MiniGraphUIIndoor {
     HintsMap map;
     final Graph graph;
     private IndoorExtension indoorExtension;
-    Color edgeOnSameLevel = new Color(45, 163, 85);
-    Color edgeOnDifferentLevel = new Color(193, 193, 193);
-    Color wayOnSameLevel = new Color(174, 239, 190);
-    Color wayOnDifferentLevel = new Color(244,244,244);
+    Color edgeOnSameLevel = new Color(234, 0, 0);
+    Color edgeOnDifferentLevel = new Color(161, 161, 161);
+    Color wayOnSameLevel = new Color(49, 226, 141);
+    Color wayOnDifferentLevel = new Color(198, 198, 198);
 
     public MiniGraphUIIndoor(GraphHopper hopper, boolean debug) {
         graph = hopper.getGraphHopperStorage();
@@ -280,7 +280,6 @@ public class MiniGraphUIIndoor {
                 logger.info("start searching with " + algo + " from:" + fromRes + " to:" + toRes + " " + weighting);
 
 
-
                 if (fromLevel.equals(currentLevel))
                     g2.setColor(edgeOnSameLevel);
                 else
@@ -327,14 +326,6 @@ public class MiniGraphUIIndoor {
         new MiniGraphUIIndoor(hopper, debug).visualize();
     }
 
-    public Color[] generateColors(int n) {
-        Color[] cols = new Color[n];
-        for (int i = 0; i < n; i++) {
-            cols[i] = Color.getHSBColor((float) i / (float) n, 0.85f, 1.0f);
-        }
-        return cols;
-    }
-
     // for debugging
     private Path calcPath(RoutingAlgorithm algo) {
 //        int from = index.findID(50.042, 10.19);
@@ -354,9 +345,9 @@ public class MiniGraphUIIndoor {
         mg.plotText(g2, lat, lon, "" + node);
     }
 
-    private Path plotPath(Path tmpPath, Graphics2D g2, int w) {
+    private Path plotPath(Path tmpPath, Graphics2D g2, int width) {
         if (!tmpPath.isFound()) {
-            logger.info("nothing found " + w);
+            logger.info("nothing found " + width);
             return tmpPath;
         }
 
@@ -375,34 +366,30 @@ public class MiniGraphUIIndoor {
         levels[0] = Integer.parseInt(fromLevel);
         levels[1] = Integer.parseInt(toLevel);
         tmpPath.setLevels(levels);
-        PointList list = tmpPath.calcPoints();
 
+        PointListIndoor pathPoints = (PointListIndoor) tmpPath.calcPoints();
 
-        PointListIndoor indoorList = PointListIndoor.fromPath(tmpPath,indoorExtension,levels);
-
-        for (int i = 0; i < list.getSize(); i++) {
-            double lat = indoorList.getLatitude(i);
-            double lon = indoorList.getLongitude(i);
-            int level = indoorList.getLevel(i);
-
+        for (int i = 0; i < pathPoints.getSize(); i++) {
+            double lat = pathPoints.getLatitude(i);
+            double lon = pathPoints.getLongitude(i);
+            int level = pathPoints.getLevel(i);
+            width = 4;
             if(Integer.toString(level).equals(currentLevel)) {
                 g2.setColor(edgeOnSameLevel);
-                w = 4;
             }
             else {
                 g2.setColor(edgeOnDifferentLevel);
-                w = 3;
             }
 
             if (!Double.isNaN(prevLat)) {
-                mg.plotEdge(g2, prevLat, prevLon, lat, lon, w);
+                mg.plotEdge(g2, prevLat, prevLon, lat, lon, width);
             } else {
-                mg.plot(g2, lat, lon, w);
+                mg.plot(g2, lat, lon, width);
             }
             prevLat = lat;
             prevLon = lon;
         }
-        logger.info("dist:" + tmpPath.getDistance() + ", path points(" + list.getSize() + ")");
+        logger.info("dist:" + tmpPath.getDistance() + ", path points(" + pathPoints.getSize() + ")");
         return tmpPath;
     }
 
@@ -612,16 +599,17 @@ public class MiniGraphUIIndoor {
                 rand.setSeed(0);
                 bitset.clear();
             }
-            float width = 2.8f;
+            float width = 1.2f;
 
             AllEdgesIterator edge = graph.getAllEdges();
             while (edge.next()) {
                 if (edge instanceof EdgeIteratorIndoor) {
                     EdgeIteratorIndoor edgeIndoor = (EdgeIteratorIndoor) edge;
                     if (!edgeIndoor.getLevel().equals(currentLevel)) {
+                        width  = 0.8f;
                         g2.setColor(wayOnDifferentLevel);
-                        //width = 2f;
                     } else {
+                        width = 1.8f;
                         g2.setColor(wayOnSameLevel);
                     }
                 }

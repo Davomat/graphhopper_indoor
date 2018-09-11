@@ -355,6 +355,7 @@ public class Path {
 
             }
         });
+        // add levels to point list if necessary
         if(isIndoor()){
             PointListIndoor pointsIndoor = PointListIndoor.fromPointList(points,calcEdges(),(IndoorExtension)graphExtension,levels);
             return pointsIndoor;
