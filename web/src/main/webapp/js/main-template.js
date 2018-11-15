@@ -659,7 +659,7 @@ function routeLatLng(request, doQuery) {
                 var tmpWayPoints = []
                 var pointOnSameLevel = false;
                 var level = path.points.levels[pointIndex];
-                while (level == path.points.levels[pointIndex]) {
+                while (pointIndex < path.points.coordinates.length && level == path.points.levels[pointIndex]) {
                     for (var i = 0; i<path.snapped_waypoints.coordinates.length;i++){
                        if (path.snapped_waypoints.coordinates[i].toString() === path.points.coordinates[pointIndex].toString()) 
                             tmpWayPoints.push(path.snapped_waypoints.coordinates[i])

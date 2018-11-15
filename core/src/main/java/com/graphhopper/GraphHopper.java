@@ -222,8 +222,9 @@ public class GraphHopper implements GraphHopperAPI {
      * Configures the underlying storage and response to be used on a well equipped server. Result
      * also optimized for usage in the web module i.e. try reduce network IO.
      */
-    public GraphHopper forServer() {
-        setSimplifyResponse(true);
+    public GraphHopper forServer(boolean isIndoor) {
+        //you need more detailed routes indoors
+        setSimplifyResponse(!isIndoor);
         return setInMemory();
     }
 

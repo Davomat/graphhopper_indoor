@@ -319,7 +319,6 @@ public class MiniGraphUIIndoor {
 
     public static void main(String[] strs) throws Exception {
         CmdArgs args = CmdArgs.read(strs);
-        //GraphHopperIndoor hopper = new GraphHopperIndoor();
         GraphHopperOSM hopper = new GraphHopperOSM();
         hopper.init(args).importOrLoad();
         boolean debug = args.getBool("minigraphui.debug", false);

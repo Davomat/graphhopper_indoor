@@ -70,7 +70,7 @@ public class GraphHopperModule extends AbstractModule {
     GraphHopper createGraphHopper(CmdArgs args) {
         GraphHopper graphHopper = new GraphHopperOSM(
                 SpatialRuleLookupHelper.createLandmarkSplittingFeatureCollection(args.get(Parameters.Landmark.PREPARE + "split_area_location",""))
-        ).forServer();
+        ).forServer(args.getBool("indoor",false));
         graphHopper.init(args);
         return graphHopper;
     }
