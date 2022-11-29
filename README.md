@@ -11,13 +11,23 @@ We have a prosper community and welcome everyone. Let us know your problems, use
 
 ## Get Started
 
-To get started read through our documentation and install the GraphHopper Web Service locally:
+To set up a graphhopper server locally, you need to prepare some things:
 
- * unstable: [docs](https://github.com/graphhopper/graphhopper/blob/master/docs/index.md), [zip](https://oss.sonatype.org/content/groups/public/com/graphhopper/graphhopper-web/0.11-SNAPSHOT/), [Android APK](https://oss.sonatype.org/content/groups/public/com/graphhopper/graphhopper-android/0.11-SNAPSHOT/)
- * 0.10.0 latest stable: [announcement](https://www.graphhopper.com/blog/2018/03/08/graphhopper-routing-engine-0-10-released/), [docs](https://github.com/graphhopper/graphhopper/blob/0.10/docs/index.md), [zip](https://graphhopper.com/public/releases/graphhopper-web-0.10.0-bin.zip), [Android APK](https://graphhopper.com/public/releases/graphhopper-android-0.10.0.apk)
- * 0.9.0: [announcement](https://www.graphhopper.com/blog/2017/05/31/graphhopper-routing-engine-0-9-released/), [docs](https://github.com/graphhopper/graphhopper/blob/0.9/docs/index.md), [zip](https://graphhopper.com/public/releases/graphhopper-web-0.9.0-bin.zip), [Android APK](https://graphhopper.com/public/releases/graphhopper-android-0.9.0.apk)
- * 0.8.2: [announcement](https://www.graphhopper.com/blog/2016/10/18/graphhopper-routing-engine-0-8-released/), [docs](https://github.com/graphhopper/graphhopper/blob/0.8/docs/index.md), [zip](https://graphhopper.com/public/releases/graphhopper-web-0.8.2-bin.zip), [Android APK](https://graphhopper.com/public/releases/graphhopper-android-0.8.2.apk)
- * 0.7.0: [announcement](https://www.graphhopper.com/blog/2016/06/15/graphhopper-routing-engine-0-7-released/), [docs](https://github.com/graphhopper/graphhopper/blob/0.7/docs/index.md), [zip](https://graphhopper.com/public/releases/graphhopper-web-0.7.0-bin.zip), [Android APK](https://graphhopper.com/public/releases/graphhopper-android-0.7.0.apk)
+ * install jdk8 or jdk11
+ * clone this repo
+ * copy any `.osm` or `.osm.pbf` file with indoor routes (TAG:`highway=footway`) to the repos local directory
+ * start the server (see the following steps)
+ * open `localhost:8989` in a browser 
+
+### Starting the server
+
+You have to use a bash command window (use e.g. cygwin for windows) and maybe install maven.
+Then `cd` your way to the local directory.
+
+Then use the following command: `./graphhopper.sh web <your-file.osm>`
+This will create some jar files and modules once and start the server if the file contains ways.
+
+To delete and recreate all the jar files use the command `mvn clean install -DskipTests` in the directory. 
 
 ## Questions
 
