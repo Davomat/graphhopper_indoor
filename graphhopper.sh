@@ -16,7 +16,7 @@ if [ "$bit64" != "" ]; then
 fi
 echo "## using java $vers from $JAVA_HOME"
 
-CONFIG=config.properties
+CONFIG=config-indoor.properties
 if [ ! -f "config.properties" ]; then
   cp config-example.properties $CONFIG
 fi
