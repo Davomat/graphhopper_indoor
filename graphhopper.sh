@@ -17,9 +17,6 @@ fi
 echo "## using java $vers from $JAVA_HOME"
 
 CONFIG=config-indoor.properties
-if [ ! -f "config.properties" ]; then
-  cp config-example.properties $CONFIG
-fi
 
 ACTION=$1
 FILE=$2
