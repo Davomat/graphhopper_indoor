@@ -20,7 +20,7 @@ public class IndoorFlagEncoderNoStairs extends IndoorFlagEncoder{
     public IndoorFlagEncoderNoStairs(int speedBits, double speedFactor) {
         super(speedBits, speedFactor);
         allowedHighwayTags.remove("stairs");
-
+        allowedHighwayTags.remove("steps");
         init();
     }
 

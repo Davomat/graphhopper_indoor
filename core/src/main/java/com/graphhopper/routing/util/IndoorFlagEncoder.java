@@ -69,6 +69,7 @@ public class IndoorFlagEncoder extends AbstractFlagEncoder {
 
         safeHighwayTags.add("footway");
         safeHighwayTags.add("stairs");
+        safeHighwayTags.add("steps");
         safeHighwayTags.add("elevator");
 
         allowedHighwayTags.addAll(safeHighwayTags);
